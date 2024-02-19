@@ -1,2 +1,6 @@
-# RLOP
-RLOP: A Framework for Reinforcement Learning, Optimization and Planning Algorithms
+# Extensible Decision Optimization Framework (EDOF)
+
+Extensible Decision Optimization Framework (EDOF) is a .
+
+
+## Main Features
