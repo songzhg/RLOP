@@ -5,8 +5,8 @@
 
 int main() {
     using namespace continuous_lunar_lander;
- 
-	py::scoped_interpreter guard{}; 
+
+    py::scoped_interpreter guard{}; 
 
     rlop::Timer timer;
 

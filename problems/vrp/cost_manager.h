@@ -26,6 +26,8 @@ namespace vrp {
 
     class ArcCostManager : public CostManager {
     public:
+        ArcCostManager() = default;
+        
         ArcCostManager(const Routes& routes, const std::function<Int(Int, Int)>& get_cost) : routes_(&routes), get_cost_(get_cost) {}
         
         virtual ~ArcCostManager() = default;

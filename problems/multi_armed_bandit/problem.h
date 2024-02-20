@@ -7,35 +7,17 @@ namespace multi_armed_bandit {
     using rlop::kIntNull;
     using rlop::kIntFull;
 
-    class ActionSpace {
+    class Problem {
     public:
-        ActionSpace(Int num_arms) : num_arms_(num_arms) {}
+        Problem(Int num_arms) : num_arms_(num_arms), reward_dists_(num_arms) {}
 
-        virtual ~ActionSpace() = default;
-
-        virtual Int Size() const {
-            return num_arms_; 
-        }
-
-        virtual Int Get(Int i) const {
-            return i;
-        }
-
-    protected:
-        Int num_arms_ = 0;
-    };
-
-    class Env {
-    public:
-        Env(Int num_arms) : reward_dists_(num_arms), action_space_(num_arms) {}
-
-        virtual ~Env() = default;
+        virtual ~Problem() = default;
 
         virtual void Reset() {
             total_reward_ = 0;
             reward_dists_.clear();
             double best = std::numeric_limits<double>::lowest();
-            for (Int i=0; i<action_space_.Size(); ++i) {
+            for (Int i=0; i<num_arms_; ++i) {
                 double mean = rand_.Normal(0.0, 1.0);
                 reward_dists_.push_back(std::pair{ mean, 1.0 });
                 if (mean > best) {
@@ -43,6 +25,14 @@ namespace multi_armed_bandit {
                     best_arm_ = i;
                 }
             }
+        }
+
+        virtual Int NumActions() const {
+            return num_arms_;
+        }
+
+        virtual Int GetAction(Int i) const {
+            return i;
         }
 
         virtual void Reset(uint64_t seed) {
@@ -72,16 +62,11 @@ namespace multi_armed_bandit {
             return reward_dists_;
         }
 
-        const ActionSpace& action_space() const {
-            return action_space_;
-        }
-
     protected:
         double total_reward_ = 0;
         Int num_arms_ = 0;
         Int best_arm_ = kIntNull;
         std::vector<std::pair<double, double>> reward_dists_;
-        ActionSpace action_space_;
         rlop::Random rand_;
     };
 }

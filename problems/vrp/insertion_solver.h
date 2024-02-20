@@ -5,19 +5,19 @@
  
 namespace vrp {
     class InsertionSolver : public rlop::BaseAlgorithm {
-	public:
-		InsertionSolver(Problem* problem) : problem_(problem) {}
+    public:
+        InsertionSolver(Problem* problem) : problem_(problem) {}
 
-		~InsertionSolver() = default;
+        ~InsertionSolver() = default;
 
-		virtual void Reset() override {}
+        virtual void Reset() override {}
 
-		virtual Int Evaluate(Int i) const {
-			auto op = problem_->operator_space()->GetInsertion(i);
-			return problem_->EvaluateDelta(*op);
-		}
+        virtual Int Evaluate(Int i) const {
+            auto op = problem_->operator_space()->GetInsertion(i);
+            return problem_->EvaluateDelta(*op);
+        }
 
-		virtual std::optional<Int> Select() {
+        virtual std::optional<Int> Select() {
             Int best = kIntNull;
             double best_score = std::numeric_limits<double>::max();
             for (Int i=0; i<problem_->operator_space()->NumInsertions(); ++i) {
@@ -32,18 +32,18 @@ namespace vrp {
             return { best };
         }
 
-		virtual void Solve() {
-			while (true) {
-				auto i = Select();
-				if (!i)
-					return;
-				auto op = problem_->operator_space()->GetInsertion(*i);
-				if (!problem_->Step(*op))
-					return;
-			}
-		}
+        virtual void Solve() {
+            while (true) {
+                auto i = Select();
+                if (!i)
+                    return;
+                auto op = problem_->operator_space()->GetInsertion(*i);
+                if (!problem_->Step(*op))
+                    return;
+            }
+        }
 
-	protected:
-		Problem* problem_ = nullptr;
-	};
+    protected:
+        Problem* problem_ = nullptr;
+    };
 }

@@ -15,16 +15,20 @@ namespace vrp {
         }
 
         virtual void Reset() {
-            for (auto ptr : operators_) {
-                delete ptr;
-            }
-            operators_.clear();
+            ClearOperators();
         }
 
 
         virtual void Reset(const Routes& routes) {
             routes_ = &routes;
             Reset();
+        }
+
+        virtual void ClearOperators() {
+            for (auto ptr : operators_) {
+                delete ptr;
+            }
+            operators_.clear();
         }
 
         virtual Int NumInsertions() const {
@@ -47,7 +51,7 @@ namespace vrp {
         }
         
         virtual void GenerateNeighbors() {
-            Reset();
+            ClearOperators();
             for (Int ri=0; ri<routes_->num_routes(); ++ri) {
                 if (!routes_->IsStarted(ri))
                     continue;

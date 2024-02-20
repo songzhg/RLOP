@@ -25,16 +25,16 @@ namespace rlop {
         virtual TCost EvaluateNeighbor(const TNeighbor& neighbor) = 0;
 
         virtual void Reset() override {
-			LocalSearch<TNeighbor, TCost>::Reset();
+            LocalSearch<TNeighbor, TCost>::Reset();
             temp_ = initial_temp_;
-		}
+        }
 
-		virtual void Reset(uint64_t seed) {
-			Reset();
-			rand_.Seed(seed);
-		}
+        virtual void Reset(uint64_t seed) {
+            Reset();
+            rand_.Seed(seed);
+        }
 
-         virtual bool Proceed() override {
+        virtual bool Proceed() override {
             if (!LocalSearch<TNeighbor, TCost>::Proceed())
                 return false;
             return temp_ > final_temp_;

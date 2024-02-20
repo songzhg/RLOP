@@ -36,6 +36,49 @@ namespace vrp {
             std::cout << std::endl;
         }
 
+        virtual bool Step(const Operator& op) {
+            if (op.GetType() == Operator::Type::kInsertion) {
+                auto insert = static_cast<const Insertion&>(op);
+                if (!Insert(insert.node(), insert.to_node()))
+                    return false;
+            }
+            else if (op.GetType() == Operator::Type::kSwap) {
+                auto swap = static_cast<const Swapping&>(op);
+                if (!Swap(swap.from_node(), swap.to_node()))
+                    return false;
+            }
+            else if (op.GetType() == Operator::Type::kMoving) {
+                auto move = static_cast<const Moving&>(op);
+                if (!Move(move.from_node(), move.to_node()))
+                    return false;
+            }
+            else if (op.GetType() == Operator::Type::kTwoOpt) {
+                auto opt = static_cast<const TwoOpting&>(op);
+                if (!TwoOpt(opt.from_node(), opt.to_node()))
+                    return false;
+            }
+            return true;
+        }
+
+        virtual void Undo(const Operator& op) {
+            if (op.GetType() == Operator::Type::kInsertion) {
+                auto insert = static_cast<const Insertion&>(op);
+                Erase(insert.node());
+            }
+            else if (op.GetType() == Operator::Type::kSwap) {
+                auto swap = static_cast<const Swapping&>(op);
+                Swap(swap.from_node(), swap.to_node());
+            }
+            else if (op.GetType() == Operator::Type::kMoving) {
+                auto move = static_cast<const Moving&>(op);
+                Move(move.to_node(), move.from_node());
+            }
+            else if (op.GetType() == Operator::Type::kTwoOpt) {
+                auto two_opt = static_cast<const TwoOpting&>(op);
+                TwoOpt(two_opt.to_node(), two_opt.from_node()); 
+            }
+        }
+
         bool Erase(Int node) {
             if (!IsErasable(node)) 
                 return false;

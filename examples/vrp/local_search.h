@@ -3,58 +3,73 @@
 #include "rlop/local_search/tabu_search.h"
  
 namespace vrp {
-	class LocalSearch : public rlop::TabuSearch<Int> {
-	public:
-		LocalSearch(
-			Problem* problem,
-			Int max_num_unimproved_iters = 50 
-		) : 
-			rlop::TabuSearch<Int>(max_num_unimproved_iters),
-			problem_(problem) 
-		{}
+    class LocalSearch : public rlop::TabuSearch<Int> {
+    public:
+        LocalSearch(const std::function<Int(Int, Int)>& get_cost, Int max_num_unimproved_iters = 50 ) : 
+            rlop::TabuSearch<Int>(max_num_unimproved_iters),
+            operator_space_(routes_),
+			cost_manager_(routes_, get_cost),
+            problem_(&routes_, &operator_space_, { &cost_manager_ })
+        {}
 
-		virtual ~LocalSearch() = default;
+        ~LocalSearch() = default;
 
-
-		virtual Int EvaluateSolution() override {
-			return problem_->GetTotalCost();
+		void Reset(const Routes& routes) {
+			rlop::TabuSearch<Int>::Reset();
+			routes_ = routes;
+			operator_space_.Reset();
+			cost_manager_.Reset();
 		}
 
-		virtual Int NumNeighbors() const override {
-			return problem_->operator_space()->NumNeighbors();
+		void Reset(Routes&& routes) {
+			rlop::TabuSearch<Int>::Reset();
+			routes_ = std::move(routes);
+			operator_space_.Reset();
+			cost_manager_.Reset();
 		}
 
-		virtual bool IsTabu(Int neighbor_i) override {
-			return false;
-		}
+        Int EvaluateSolution() override {
+            return problem_.GetTotalCost();
+        }
 
-		virtual Int EvaluateNeighbor(Int neighbor_i) override {
-			const Operator* op = problem_->operator_space()->GetNeighbor(neighbor_i);
-			return problem_->EvaluateDelta(*op) + problem_->GetTotalCost();
-		}
+        Int NumNeighbors() const override {
+            return problem_.operator_space()->NumNeighbors();
+        }
 
-		virtual std::optional<Int> Select() override {
-			problem_->operator_space()->GenerateNeighbors();
-			return rlop::TabuSearch<Int>::Select();
-		}
+        bool IsTabu(Int neighbor_i) override {
+            return false;
+        }
 
-		virtual bool Step(const Int& neighbor_i) override {
-			const Operator* op = problem_->operator_space()->GetNeighbor(neighbor_i);
-			if (!problem_->Step(*op))
-				return false;
-			return true;
-		}
+        Int EvaluateNeighbor(Int neighbor_i) override {
+            const Operator* op = problem_.operator_space()->GetNeighbor(neighbor_i);
+            return problem_.EvaluateDelta(*op) + problem_.GetTotalCost();
+        }
 
-		virtual void RecordSolution() override {
-			best_routes_ = (*problem_->routes());
-		}
+        std::optional<Int> Select() override {
+            problem_.operator_space()->GenerateNeighbors();
+            return rlop::TabuSearch<Int>::Select();
+        }
 
-		const Routes& best_routes() const {
-			return best_routes_;
-		}
+        bool Step(const Int& neighbor_i) override {
+            const Operator* op = problem_.operator_space()->GetNeighbor(neighbor_i);
+            if (!problem_.Step(*op))
+                return false;
+            return true;
+        }
 
-	protected:
-		Problem* problem_ = nullptr;
+        void RecordSolution() override {
+            best_routes_ = (*problem_.routes());
+        }
+
+        const Routes& best_routes() const {
+            return best_routes_;
+        }
+
+    protected:
+        Routes routes_;
 		Routes best_routes_;
-	};
+		ArcCostManager cost_manager_;
+		OperatorSpace operator_space_;
+        Problem problem_;
+    };
 }

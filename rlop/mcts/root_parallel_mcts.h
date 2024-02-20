@@ -130,15 +130,15 @@ namespace rlop {
         }
 
         virtual void Release(Node* node) {
-			if (node == nullptr) 
-				return;
-			for (Int i=0; i<node->children.size(); ++i) {
+            if (node == nullptr) 
+                return;
+            for (Int i=0; i<node->children.size(); ++i) {
                 Node* child = node->children[i];
-				Release(child);
+                Release(child);
                 delete child;
-			}
+            }
             node->children.clear();
-		}
+        }
 
         virtual Node* NewNode() const {
             return new Node();

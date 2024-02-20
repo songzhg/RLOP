@@ -57,26 +57,26 @@ namespace rlop {
         T& Front()  {
             if (Empty())
                 throw std::runtime_error("CircularBuffer: get elements on empty buffer.");
-			return vec_[head_];
-		} 
+            return vec_[head_];
+        }
 
         const T& Front() const {
             if (Empty())
                 throw std::runtime_error("CircularBuffer: get elements on empty buffer.");
-			return vec_[head_];
-		} 
+            return vec_[head_];
+        } 
 
         T& Back() {
-			if (Empty())
+            if (Empty())
                 throw std::runtime_error("CircularBuffer: get elements on empty buffer.");
             return vec_[(pos_ == 0? vec_.size() : pos_) - 1];
-		} 
+        } 
 
         const T& Back() const {
-			if (Empty())
+            if (Empty())
                 throw std::runtime_error("CircularBuffer: pop back on empty buffer.");
             return vec_[(pos_ == 0? vec_.size() : pos_) - 1];
-		} 
+        }
 
         const std::vector<T>& vec() const {
             return vec_;

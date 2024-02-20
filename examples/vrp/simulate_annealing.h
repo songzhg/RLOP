@@ -3,30 +3,51 @@
 #include "rlop/local_search/simulated_annealing.h"
  
 namespace vrp {
-	class SimulatedAnnealing : public rlop::SimulatedAnnealing<Int, Int> {
-	public:
-		SimulatedAnnealing(
-			Problem* problem,
-			double initial_temp = 100,
-			double final_temp = 0.01,
+    class SimulatedAnnealing : public rlop::SimulatedAnnealing<Int, Int> {
+    public:
+        SimulatedAnnealing(
+			const std::function<Int(Int,Int)>& get_cost,
+            double initial_temp = 100,
+            double final_temp = 0.01,
             double cooling_rate = 0.03
-		) : 
-			problem_(problem), 
-			rlop::SimulatedAnnealing<Int, Int>(initial_temp, final_temp, cooling_rate)
-		{}
+        ) : 
+            rlop::SimulatedAnnealing<Int, Int>(initial_temp, final_temp, cooling_rate),
+			operator_space_(routes_),
+			cost_manager_(routes_, get_cost),
+            problem_(&routes_, &operator_space_, { &cost_manager_ })
+        {}
 
-		virtual ~SimulatedAnnealing() = default;
-
-		virtual std::optional<Int> SelectRandom() override {
-			if (problem_->operator_space()->NumNeighbors() == 0)
-				return std::nullopt;
-			return rand_.Uniform(Int(0), problem_->operator_space()->NumNeighbors() - 1);	
+		void Reset() override {
+			rlop::SimulatedAnnealing<Int, Int>::Reset();
+			routes_.Reset();
+			operator_space_.Reset();
+			cost_manager_.Reset();
 		}
 
-		virtual std::optional<Int> SelectLocal() override {
-			Int best = kIntNull;
+		void Reset(const Routes& routes) {
+			rlop::SimulatedAnnealing<Int, Int>::Reset();
+			routes_ = routes;
+			operator_space_.Reset();
+			cost_manager_.Reset();
+		}
+
+		void Reset(Routes&& routes) {
+			rlop::SimulatedAnnealing<Int, Int>::Reset();
+			routes_ = std::move(routes);
+			operator_space_.Reset();
+			cost_manager_.Reset();
+		}
+
+        std::optional<Int> SelectRandom() override {
+            if (problem_.operator_space()->NumNeighbors() == 0)
+                return std::nullopt;
+            return rand_.Uniform(Int(0), problem_.operator_space()->NumNeighbors() - 1);    
+        }
+
+        std::optional<Int> SelectLocal() override {
+            Int best = kIntNull;
             double best_score = std::numeric_limits<double>::max();
-            for (Int i=0; i<problem_->operator_space()->NumNeighbors(); ++i) {
+            for (Int i=0; i<problem_.operator_space()->NumNeighbors(); ++i) {
                 double score = EvaluateNeighbor(i);
                 if (score < best_score) {
                     best = i;
@@ -36,39 +57,42 @@ namespace vrp {
             if (best == kIntNull)
                 return std::nullopt;
             return { best }; 
-		}
+        }
 
-		virtual Int EvaluateSolution() override {
-			return problem_->GetTotalCost();
-		}
+        Int EvaluateSolution() override {
+            return problem_.GetTotalCost();
+        }
 
-		virtual Int EvaluateNeighbor(const Int& op_i) override {
-			auto op = problem_->operator_space()->GetNeighbor(op_i);
-			return problem_->EvaluateDelta(*op) + problem_->GetTotalCost();
-		}
+        Int EvaluateNeighbor(const Int& op_i) override {
+            auto op = problem_.operator_space()->GetNeighbor(op_i);
+            return problem_.EvaluateDelta(*op) + problem_.GetTotalCost();
+        }
 
-		virtual std::optional<Int> Select() override {
-			problem_->operator_space()->GenerateNeighbors();
-			return rlop::SimulatedAnnealing<Int, Int>::Select();
-		}
+        std::optional<Int> Select() override {
+            problem_.operator_space()->GenerateNeighbors();
+            return rlop::SimulatedAnnealing<Int, Int>::Select();
+        }
 
-		virtual bool Step(const Int& op_i) override {
-			auto op = problem_->operator_space()->GetNeighbor(op_i);
-			if (!problem_->Step(*op))
-				return false;
-			return true;
-		}
+        bool Step(const Int& op_i) override {
+            auto op = problem_.operator_space()->GetNeighbor(op_i);
+            if (!problem_.Step(*op))
+                return false;
+            return true;
+        }
 
-		virtual void RecordSolution() override {
-			best_routes_ = *(problem_->routes());
-		}
+        void RecordSolution() override {
+            best_routes_ = routes_;
+        }
 
-		const Routes& best_routes() const {
-			return best_routes_;
-		}
+        const Routes& best_routes() const {
+            return best_routes_;
+        }
 
-	protected:
-		Problem* problem_ = nullptr;
+    protected:
+        Routes routes_;
 		Routes best_routes_;
-	};
+		ArcCostManager cost_manager_;
+		OperatorSpace operator_space_;
+        Problem problem_;
+    };
 }
