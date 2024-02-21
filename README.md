@@ -28,26 +28,52 @@ RLOP is a Header-Only C++ framework, so it does not require compiling or linking
 
 # Requirements
 
-This framework is built on C++17 and above. Ensure you have a C++ compiler that supports C++17 standards or higher. 
+This framework is built on C++17 and above. Ensure you have a C++ compiler that supports C++17 standards or higher. So far, it is only tested on Linux platforms.
 
 - **For reinforcement learning**: If your project involves algorithms that utilize reinforcement learning algorithms or deep learning models, the installation of libtorch is necessary.
   
   - **Installation of libtorch:**
-    follow the instructions on the official PyTorch website: https://pytorch.org/cppdocs/installing.html. Make sure to select the appropriate version for your operating system and CUDA version (if applicable) to ensure compatibility with your development environment.
+    Follow the instructions on the official PyTorch website: https://pytorch.org/cppdocs/installing.html. Make sure to select the appropriate version for your operating system and CUDA version (if applicable) to ensure compatibility with your development environment.
 
-- **For gymnasium environments**: RLOP includes a C++ wrapper (GymEnv and GymVectorEnv class) for gymnasium environments to support reinforcement learning algorithms in C++. To fully utilize this capability, specific requirements need to be met:
+- **For Gymnasium environments**: RLOP includes a C++ wrapper (GymEnv and GymVectorEnv class) for Gymnasium environments to support reinforcement learning algorithms in C++. To fully utilize this capability, specific requirements need to be met:
  
-  - **Installation of gymnasium:**
+  - **Installation of Gymnasium:**
     Follow the official gymnasium documentation to set up the environments you need: https://github.com/Farama-Foundation/Gymnasium.
 
   - **Installation of pybind11:**
     Visit the pybind11 docoments for detailed installation instructions: https://pybind11.readthedocs.io/en/stable/installing.html. 
     
-  - **Embedding python iterpreter by pybind11:** 
+  - **Embedding Python interpreter by pybind11:** 
     Pybind11 is possible to embed the Python interpreter into a C++ program. Follow the instructions on the official: https://pybind11.readthedocs.io/en/stable/advanced/embedding.html.
 
-- **For examples in RLOP**: RLOP implements some benchmark problems in reinforcement learning, optimization, and planning/search and provides examples demonstrating how to solve these problems using the algorithms integrated within RLOP. Some examples need extra libraries. To run these examples, please intall the necessary libraries that the examples depend on.
+- **For some examples in RLOP**: RLOP implements some benchmark problems in reinforcement learning, optimization, and planning/search and provides examples demonstrating how to solve these problems using the algorithms integrated within RLOP. Some examples need extra libraries. To run these examples, please intall the necessary libraries that the examples depend on.
  
-  - **Lunar lander:** It is a Python-based gymnasium enviroment. Please install gymnasium and pybind11 according to the instructions above.
+  - **Lunar lander:** A Python-based Gymnasium enviroment. Please install Gymnasium and pybind11 according to the instructions above.
 
-  - **Snake:** A video game for reinforcement learning and planning/search. Please install SFML (Simple and Fast Multimedia Library) for the graphics display, according to https://www.sfml-dev.org/tutorials/2.6/.
+  - **Snake:** A video game for reinforcement learning and planning/search. Please install SFML (Simple and Fast Multimedia Library) according to https://www.sfml-dev.org/tutorials/2.6/ to enable the graphics display.
+  
+# Implemented Algorithms
+
+| **Algorithm**                         | **Type** |
+| ---------------------------           | ----------------------|
+| DQN                                   |   RL  |
+| PPO                                   |   RL  |
+| SAC                                   |   RL  |
+| MCTS/PUCT                             |   Search |
+| Root-parallel MCTS/PUCT               |   Search |
+| Alpha-beta Search                     |   Search |
+| Alpha-beta Search With Tranposition   |  Search |
+| Local Search                          |  Opt |
+| Tabu Search                           |  Opt |
+| Simulated Annealing                   |  Opt |
+
+# Examples
+
+| **Problem**                         | **Algorithms/Methods** |
+| ---------------------------           | ----------------------|
+| Lunar Lander                          |   DQN, PPO  |
+| Coninuous Lunar Lander                |   PPO, SAC  |
+| Snake                                 |   MCTS, DQN, PPO  |
+| Connect4                              |   Alpha-beta Search, MCTS |
+| VRP                                   |   Insertion, Local Search, Tabu Search, Simulated Annealling |
+| Multi-armed bandit                    |   UCB1, Epsilon-greedy, Softmax, ... |
