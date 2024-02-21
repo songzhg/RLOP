@@ -14,27 +14,31 @@ namespace rlop {
             Type type = Type::kNone;
         };
 
-        CircularTransposition(size_t size) : table_(size) {}
+        CircularTransposition(size_t size) : vec_(size) {}
 
         virtual ~CircularTransposition() = default;
 
         virtual void Reset() {
-            table_ = std::vector<Item>(table_.size());
+            vec_ = std::vector<Item>(vec_.size());
         }
 
         virtual void Save(TKey key, const Item& item) {
-            table_[key % table_.size()] = item;
+            vec_[key % vec_.size()] = item;
         }
 
         virtual void Save(TKey key, Item&& item) {
-            table_[key % table_.size()] = std::move(item);
+            vec_[key % vec_.size()] = std::move(item);
         }
 
         virtual const Item& Get(TKey key) {
-            return table_[key % table_.size()];
+            return vec_[key % vec_.size()];
         }
 
+        const std::vector<Int>& vec() const {
+            return vec_;
+        } 
+
     protected:
-        std::vector<Item> table_;
+        std::vector<Item> vec_;
     };
 }

@@ -1,4 +1,3 @@
-
 def csv_to_line_chart(path, single_chart = False, delimiter='\t'):
     import pandas as pd
     import matplotlib.pyplot as plt
@@ -61,12 +60,3 @@ def tensorboard_to_csv(path):
                 value = scalars_data[tag][i].value if i < len(scalars_data[tag]) else None
                 row.append(value)
             writer.writerow(row)
-
-
-if __name__ == '__main__':
-    # path = 'data/continuous_lunar_lander/'
-    path = 'data/lunar_lander/'
-    # tensorboard_to_csv(path)
-    # csv_to_line_chart(path + '/rlop_ppo_log.txt', True)
-    csv_to_line_chart(path + '/rlop_dqn_log.txt', True)
-    # csv_to_line_chart(path + '/compare.txt', True)

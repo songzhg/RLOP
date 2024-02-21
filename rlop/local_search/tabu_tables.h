@@ -8,61 +8,69 @@ namespace rlop {
         virtual ~HashTabuTable() = default;
 
         virtual void Reset() {
-            table_.clear();
+            map_.clear();
         }
 
         virtual bool IsTabu(const TKey& key) const {
-            return table_.count(key);
+            return map_.count(key);
         }
 
         virtual void Tabu(const TKey& key, Int tenure) {
-            table_[key] = tenure;
+            map_[key] = tenure;
         }
 
         virtual void Untabu(const TKey& key) {
-            table_.erase(key);
+            map_.erase(key);
         }
 
         virtual void Update() {
-            for (auto it = table_.begin(); it != table_.end();) {
+            for (auto it = map_.begin(); it != map_.end();) {
                 --it->second;
                 if (it->second <= 0)
-                    it = table_.erase(it);
+                    it = map_.erase(it);
                 else
                     ++it;
             }
         }
 
+        const std::unordered_map<TKey, Int>& map() const {
+            return map_;
+        } 
+
     protected:
-        std::unordered_map<TKey, Int> table_;
+        std::unordered_map<TKey, Int> map_;
     };
 
     class CircularTabuTable {
     public:
-        CircularTabuTable(size_t size) : table_(size, 0) {}
+        CircularTabuTable(size_t size) : vec_(size, 0) {}
 
         virtual ~CircularTabuTable() = default;
 
         virtual void Reset() {
-            table_ = std::vector<Int>(table_.size(), 0);
+            vec_ = std::vector<Int>(vec_.size(), 0);
         }
 
         virtual bool IsTabu(Int key) const {
-            return table_[key % table_.size()] > 0;
+            return vec_[key % vec_.size()] > 0;
         }
 
         virtual void Tabu(Int key, Int tenure) {
-            table_[key % table_.size()] = tenure;
+            vec_[key % vec_.size()] = tenure;
         }
 
         virtual void Update() {
-            for (Int i=0; i<table_.size(); ++i) {
-                if (table_[i]>0)
-                    --table_[i];
+            for (Int i=0; i<vec_.size(); ++i) {
+                if (vec_[i]>0)
+                    --vec_[i];
             }
         }
 
+        const std::vector<Int>& vec() const {
+            return vec_;
+        } 
+
     protected:
-        std::vector<Int> table_;
+        std::vector<Int> vec_;
     };
 }

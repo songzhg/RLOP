@@ -1,4 +1,53 @@
 # RLOP: A Framework for Reinforcement Learning, Optimization and Planning Algorithms
 
-RLOP is a generic and lightweight framework for reinforcement learning, optimization, and planning/search algorithms, aimed at simplifying studying, comparing and integrating algorithms across domains. It is developed in C++ to ensure efficient implementations of algorithms that require high efficiency. 
+RLOP is a generic and lightweight framework for reinforcement learning (RL), optimization (Opt), and planning/search algorithms in C++, aimed at simplifying studying, comparing and integrating algorithms across domains. 
 
+In artificial intelligence, reinforcement learning, optimization, and planning/search have relatively independent research background and application scope, but also have similarities and overlaps. They complement each other in solving complex decision-making problems, offering opportunities for cross-disciplinary integration.
+
+RLOP implements state-of-art algorithms in reinforcement learning, optimization, and planning/search in a domain-independent manner, in order to enable flexible customization and efficient integration across different domains.
+
+# Manin Features
+- **Simple**: RLOP implements only the core logic of the algorithm, with other improvements to the algorithm being added in an extensible manner.
+  
+- **Domain-independent**: Algorithms are fully encapsulated within a class, abstracting away domain-specific details by defining interface functions, rather than directly accessing information from problem-specific classes.
+
+# Installation
+
+RLOP is a Header-Only C++ framework, so it does not require compiling or linking against precompiled binaries. To use this library in your project, follow these steps:
+
+1. Clone the repository:
+
+    ```
+    git clone https://github.com/songzhg/RLOP.git
+    ```
+
+2. Include the header files:
+    ```
+    #include "rlop/path/to/algorithm.h"
+    ```
+
+# Requirements
+
+This framework is built on C++17 and above. Ensure you have a C++ compiler that supports C++17 standards or higher. 
+
+- **For reinforcement learning**: If your project involves algorithms that utilize reinforcement learning algorithms or deep learning models, the installation of libtorch is necessary.
+  
+  - **Installation of libtorch:**
+    follow the instructions on the official PyTorch website: https://pytorch.org/cppdocs/installing.html. Make sure to select the appropriate version for your operating system and CUDA version (if applicable) to ensure compatibility with your development environment.
+
+- **For gymnasium environments**: RLOP includes a C++ wrapper (GymEnv and GymVectorEnv class) for gymnasium environments to support reinforcement learning algorithms in C++. To fully utilize this capability, specific requirements need to be met:
+ 
+  - **Installation of gymnasium:**
+    Follow the official gymnasium documentation to set up the environments you need: https://github.com/Farama-Foundation/Gymnasium.
+
+  - **Installation of pybind11:**
+    Visit the pybind11 docoments for detailed installation instructions: https://pybind11.readthedocs.io/en/stable/installing.html. 
+    
+  - **Embedding python iterpreter by pybind11:** 
+    Pybind11 is possible to embed the Python interpreter into a C++ program. Follow the instructions on the official: https://pybind11.readthedocs.io/en/stable/advanced/embedding.html.
+
+- **For examples in RLOP**: RLOP implements some benchmark problems in reinforcement learning, optimization, and planning/search and provides examples demonstrating how to solve these problems using the algorithms integrated within RLOP. Some examples need extra libraries. To run these examples, please intall the necessary libraries that the examples depend on.
+ 
+  - **Lunar lander:** It is a Python-based gymnasium enviroment. Please install gymnasium and pybind11 according to the instructions above.
+
+  - **Snake:** A video game for reinforcement learning and planning/search. Please install SFML (Simple and Fast Multimedia Library) for the graphics display, according to https://www.sfml-dev.org/tutorials/2.6/.
