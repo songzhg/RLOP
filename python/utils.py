@@ -28,7 +28,6 @@ def csv_to_line_chart(path, single_chart = False, delimiter='\t'):
         for j in range(i, len(axs)):
             axs[j].axis('off')
         plt.tight_layout()
-    # plt.savefig(path + '.pdf', bbox_inches='tight')
     plt.show()
 
 def tensorboard_to_csv(path):
@@ -53,10 +52,8 @@ def tensorboard_to_csv(path):
         header = ['step'] + scalar_tags
         writer.writerow(header)
         for i in range(max_length):
-            row = [ i ]
-            # row = [ scalars_data[scalar_tags[0]][i].step ]
+            row = [ scalars_data[scalar_tags[0]][i].step ]
             for tag in scalar_tags:
-                # Retrieve the value if the current step exists for this tag
                 value = scalars_data[tag][i].value if i < len(scalars_data[tag]) else None
                 row.append(value)
             writer.writerow(row)

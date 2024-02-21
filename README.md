@@ -6,12 +6,12 @@ In artificial intelligence, reinforcement learning, optimization, and planning/s
 
 RLOP implements state-of-art algorithms in reinforcement learning, optimization, and planning/search in a domain-independent manner, in order to enable flexible customization and efficient integration across different domains.
 
-# Manin Features
+## Main Features
 - **Simple**: RLOP implements only the core logic of the algorithm, with other improvements to the algorithm being added in an extensible manner.
   
 - **Domain-independent**: Algorithms are fully encapsulated within a class, abstracting away domain-specific details by defining interface functions, rather than directly accessing information from problem-specific classes.
 
-# Installation
+## Installation
 
 RLOP is a Header-Only C++ framework, so it does not require compiling or linking against precompiled binaries. To use this library in your project, follow these steps:
 
@@ -26,7 +26,7 @@ RLOP is a Header-Only C++ framework, so it does not require compiling or linking
     #include "rlop/path/to/algorithm.h"
     ```
 
-# Requirements
+## Requirements
 
 This framework is built on C++17 and above. Ensure you have a C++ compiler that supports C++17 standards or higher. So far, it is only tested on Linux platforms.
 
@@ -48,11 +48,16 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
 
 - **For some examples in RLOP**: RLOP implements some benchmark problems in reinforcement learning, optimization, and planning/search and provides examples demonstrating how to solve these problems using the algorithms integrated within RLOP. Some examples need extra libraries. To run these examples, please intall the necessary libraries that the examples depend on.
  
-  - **Lunar lander:** A Python-based Gymnasium enviroment. Please install Gymnasium and pybind11 according to the instructions above.
+  - **Lunar lander:** A Python-based Gymnasium enviroment. Please install libtorch, Gymnasium and pybind11 according to the instructions above.
 
   - **Snake:** A video game for reinforcement learning and planning/search. Please install SFML (Simple and Fast Multimedia Library) according to https://www.sfml-dev.org/tutorials/2.6/ to enable the graphics display.
   
-# Implemented Algorithms
+## Run Examples
+
+RLOP provides several examples demonstrating how to solve these problems using the algorithms integrated within RLOP. For the details of each examples including requirements and running, please refer to the links in the Table of Examples below. 
+  
+  
+## Implemented Algorithms
 
 | **Algorithm**                         | **Type** |
 | ---------------------------           | ----------------------|
@@ -67,7 +72,7 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
 | Tabu Search                           |  Opt |
 | Simulated Annealing                   |  Opt |
 
-# Examples
+## Examples
 
 | **Problem**                           | **Algorithms/Methods** |
 | ---------------------------           | ----------------------|

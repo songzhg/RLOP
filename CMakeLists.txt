@@ -11,7 +11,6 @@ include_directories(${CMAKE_SOURCE_DIR})
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
-
 # OpenMP
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -23,9 +22,9 @@ endif()
 # pybind11
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/pybind11)
 
-add_subdirectory(examples/vrp)
+# add_subdirectory(examples/vrp)
 # add_subdirectory(examples/snake)
 # add_subdirectory(examples/multi_armed_bandit)
 # add_subdirectory(examples/lunar_lander)
-# add_subdirectory(examples/continuous_lunar_lander)
+add_subdirectory(examples/continuous_lunar_lander)
 # add_subdirectory(examples/connect4)
