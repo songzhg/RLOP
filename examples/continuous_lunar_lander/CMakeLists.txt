@@ -23,7 +23,7 @@ if (MSVC)
                      $<TARGET_FILE_DIR:example-app>)
 endif (MSVC)
 
-# pybind11
+# pybind11 remove warnnings from complier 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(continuous_lunar_lander PRIVATE "-fvisibility=hidden")
 endif()

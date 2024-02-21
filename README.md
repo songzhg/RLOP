@@ -45,12 +45,6 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
     
   - **Embedding Python interpreter by pybind11:** 
     Pybind11 is possible to embed the Python interpreter into a C++ program. Follow the instructions on the official: https://pybind11.readthedocs.io/en/stable/advanced/embedding.html.
-
-- **For some examples in RLOP**: RLOP implements some benchmark problems in reinforcement learning, optimization, and planning/search and provides examples demonstrating how to solve these problems using the algorithms integrated within RLOP. Some examples need extra libraries. To run these examples, please intall the necessary libraries that the examples depend on.
- 
-  - **Lunar lander:** A Python-based Gymnasium enviroment. Please install libtorch, Gymnasium and pybind11 according to the instructions above.
-
-  - **Snake:** A video game for reinforcement learning and planning/search. Please install SFML (Simple and Fast Multimedia Library) according to https://www.sfml-dev.org/tutorials/2.6/ to enable the graphics display.
   
 ## Run Examples
 
@@ -76,7 +70,7 @@ RLOP provides several examples demonstrating how to solve these problems using t
 
 | **Problem**                           | **Algorithms/Methods** |
 | ---------------------------           | ----------------------|
-| Lunar Lander                          |   DQN, PPO  |
+| [Lunar Lander](examples/lunar_lander/README.md)                          |   DQN, PPO  |
 | Continuous Lunar Lander               |   PPO, SAC  |
 | Snake                                 |   MCTS, DQN, PPO  |
 | Connect4                              |   Alpha-beta Search, MCTS |

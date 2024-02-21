@@ -22,9 +22,33 @@ endif()
 # pybind11
 add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/pybind11)
 
-# add_subdirectory(examples/vrp)
-# add_subdirectory(examples/snake)
-# add_subdirectory(examples/multi_armed_bandit)
-# add_subdirectory(examples/lunar_lander)
-add_subdirectory(examples/continuous_lunar_lander)
-# add_subdirectory(examples/connect4)
+option(BUILD_VRP "Build VRP" OFF)
+option(BUILD_SNAKE "Build Snake" OFF)
+option(BUILD_LUNAR_LANDER "Build lunar lander" OFF)
+option(BUILD_CONINUOUS_LUNAR_LANDER "Build continous lunar lander" OFF)
+option(BUILD_CONNECT4 "Build connect4" OFF)
+option(BUILD_MULTI_ARMED_BANDIT "Build multi-amred bandit" OFF)
+
+if(BUILD_VRP)
+    add_subdirectory(examples/vrp)
+endif()
+
+if(BUILD_SNAKE)
+    add_subdirectory(examples/snake)
+endif()
+
+if(BUILD_LUNAR_LANDER)
+    add_subdirectory(examples/lunar_lander)
+endif()
+
+if(BUILD_CONINUOUS_LUNAR_LANDER)
+    add_subdirectory(examples/continuous_lunar_lander)
+endif()
+
+if(BUILD_CONNECT4)
+    add_subdirectory(examples/connect4)
+endif()
+
+if(BUILD_MULTI_ARMED_BANDIT)
+    add_subdirectory(examples/multi_armed_bandit)
+endif()

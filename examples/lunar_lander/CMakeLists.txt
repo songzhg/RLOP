@@ -6,7 +6,7 @@ include_directories(${CMAKE_SOURCE_DIR})
 
 add_executable (lunar_lander "main.cc")
 
-# libtorch
+# libtorch gpu
 set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
 find_package(CUDA REQUIRED)
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/third_party/libtorch")
