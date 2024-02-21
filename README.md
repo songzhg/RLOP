@@ -62,17 +62,17 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
 | MCTS/PUCT                             |   Search |
 | Root-parallel MCTS/PUCT               |   Search |
 | Alpha-beta Search                     |   Search |
-| Alpha-beta Search With Tranposition   |  Search |
+| Alpha-beta Search with Tranposition   |  Search |
 | Local Search                          |  Opt |
 | Tabu Search                           |  Opt |
 | Simulated Annealing                   |  Opt |
 
 # Examples
 
-| **Problem**                         | **Algorithms/Methods** |
+| **Problem**                           | **Algorithms/Methods** |
 | ---------------------------           | ----------------------|
 | Lunar Lander                          |   DQN, PPO  |
-| Coninuous Lunar Lander                |   PPO, SAC  |
+| Continuous Lunar Lander               |   PPO, SAC  |
 | Snake                                 |   MCTS, DQN, PPO  |
 | Connect4                              |   Alpha-beta Search, MCTS |
 | VRP                                   |   Insertion, Local Search, Tabu Search, Simulated Annealling |
