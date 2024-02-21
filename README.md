@@ -68,11 +68,11 @@ RLOP provides several examples demonstrating how to solve these problems using t
 
 ## Examples
 
-| **Problem**                           | **Algorithms/Methods** |
-| ---------------------------           | ----------------------|
-| [Lunar Lander](examples/lunar_lander/README.md)                          |   DQN, PPO  |
-| Continuous Lunar Lander               |   PPO, SAC  |
-| Snake                                 |   MCTS, DQN, PPO  |
-| Connect4                              |   Alpha-beta Search, MCTS |
-| VRP                                   |   Insertion, Local Search, Tabu Search, Simulated Annealling |
-| Multi-armed bandit                    |   UCB1, Epsilon-greedy, Softmax, ... |
+| **Problem**                                                               | **Algorithms/Methods** |
+| ---------------------------                                               | ----------------------|
+| [Lunar Lander](examples/lunar_lander/README.md)                           |   DQN, PPO  |
+| [Continuous Lunar Lander](examples/continuous_lunar_lander/README.md)     |   PPO, SAC  |
+| Snake                                                                     |   MCTS, DQN, PPO  |
+| Connect4                                                                  |   Alpha-beta Search, MCTS |
+| VRP                                                                       |   Insertion, Local Search, Tabu Search, Simulated Annealling |
+| Multi-armed bandit                                                        |   UCB1, Epsilon-greedy, Softmax, ... |

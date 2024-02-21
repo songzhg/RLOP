@@ -1,6 +1,6 @@
 # Lunar Lander
 
-Lunar lander is a classic rocket trajectory optimization problem, which is part of the Box2D environments of gymnasium. For more detail, please refer to: https://gymnasium.farama.org/environments/box2d/lunar_lander/.
+This the continuous version of lunar lander (https://gymnasium.farama.org/environments/box2d/lunar_lander/).
 
 ## Requirements
 
@@ -47,17 +47,17 @@ Lunar lander is a classic rocket trajectory optimization problem, which is part 
     cd path/to/project
     mkdir build
     cd build
-    cmake .. -DBUILD_LUNAR_LANDER=ON
+    cmake .. -DBUILD_CONTINUOUS_LUNAR_LANDER=ON
     make
     ```
-2. **Run DQN**
+2. **Run PPO**
     ```
-    ./examples/lunar_lander/lunar_lander dqn
+    ./examples/continuous_lunar_lander/continuous_lunar_lander ppo
     ```
 
-3. **Run PPO**
+3. **Run SAC**
     ```
-    ./examples/lunar_lander/lunar_lander ppo
+    ./examples/continuous_lunar_lander/continuous_lunar_lander sac
     ```
     
 
