@@ -48,7 +48,7 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
   
 ## Run Examples
 
-RLOP provides several examples demonstrating how to solve these problems using the algorithms integrated within RLOP. For the details of each examples including requirements and running, please refer to the links in the Table of Examples below. 
+RLOP implements several benchmark problems and provides examples demonstrating how to solve these problems using the algorithms within RLOP. For the requirements and running method of each examples, please refer to the links in the table of [Examples](##Examples) below. 
   
   
 ## Implemented Algorithms

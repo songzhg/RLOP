@@ -1,4 +1,4 @@
-# Lunar Lander
+# Continuous Lunar Lander
 
 This the continuous version of lunar lander (https://gymnasium.farama.org/environments/box2d/lunar_lander/).
 
