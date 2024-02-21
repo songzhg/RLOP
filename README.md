@@ -30,10 +30,10 @@ RLOP is a Header-Only C++ framework, so it does not require compiling or linking
 
 This framework is built on C++17 and above. Ensure you have a C++ compiler that supports C++17 standards or higher. So far, it is only tested on Linux platforms.
 
-- **For reinforcement learning**: If your project involves algorithms that utilize reinforcement learning algorithms or deep learning models, the installation of libtorch is necessary.
+- **For reinforcement learning**: If your project involves algorithms that utilize reinforcement learning or deep learning models, the installation of libtorch is necessary.
   
   - **Installation of libtorch:**
-    Follow the instructions on the official PyTorch website: https://pytorch.org/cppdocs/installing.html. Make sure to select the appropriate version for your operating system and CUDA version (if applicable) to ensure compatibility with your development environment.
+    Follow the instructions on the official PyTorch website: https://pytorch.org/cppdocs/installing.html. Make sure to select the appropriate version for your operating system and CUDA version (if applicable).
 
 - **For Gymnasium environments**: RLOP includes a C++ wrapper (GymEnv and GymVectorEnv class) for Gymnasium environments to support reinforcement learning algorithms in C++. To fully utilize this capability, specific requirements need to be met:
  
@@ -48,7 +48,7 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
   
 ## Run Examples
 
-RLOP implements several benchmark problems and provides examples demonstrating how to solve these problems using the algorithms within RLOP. For the requirements and running method of each examples, please refer to the links in the table of [Examples](##Examples) below. 
+RLOP implements several benchmark problems and provides examples demonstrating how to solve these problems using the algorithms within RLOP. For the requirements and running method of each examples, please refer to the links in the table of [Examples](##examples) below. 
   
   
 ## Implemented Algorithms
