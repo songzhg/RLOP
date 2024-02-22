@@ -59,7 +59,7 @@ RLOP implements several benchmark problems and provides examples demonstrating h
 | PPO                                   |   RL     |  [Schulman et al. 2018](https://arxiv.org/abs/1707.06347)        |
 | SAC                                   |   RL     |  [Haarnoja et al. 2018](https://arxiv.org/abs/1801.01290)        |
 | MCTS/PUCT                             |   Search |  [Coulom 2006](https://hal.inria.fr/inria-00116992/document), [UCT paper](http://ggp.stanford.edu/readings/uct.pdf), [PUCT paper](https://discovery.ucl.ac.uk/id/eprint/10045895/1/agz_unformatted_nature.pdf) |
-| Root-parallel MCTS/PUCT               |   Search |
+| Root-parallel MCTS/PUCT               |   Search |  [Chaslot et al. 2008](https://dke.maastrichtuniversity.nl/m.winands/documents/multithreadedMCTS2.pdf) |
 | Alpha-beta Search                     |   Search |  [Wikipedia](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning), [Negamax](https://en.wikipedia.org/wiki/Negamax) |
 | Alpha-beta Search with Tranposition   |  Search  |  [ChessProgramming](https://www.chessprogramming.org/Transposition_Table)  |
 | Local Search                          |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Local_search_(optimization))  |
