@@ -7,6 +7,14 @@
 namespace py = pybind11;
 
 namespace rlop::gym_utils {
+    // Converts a Python tuple representing an array shape into a vector of integers suitable for
+    // specifying the sizes of a PyTorch tensor.
+    //
+    // Parameters:
+    //   shape: A py::tuple object representing the shape of a numpy array.
+    //
+    // Returns:
+    //   std::vector<Int>: A vector containing the sizes of each dimension of the tensor.
     inline std::vector<Int> ArrayShapeToTensorSizes(const py::tuple& shape) {
         std::vector<Int> sizes;
         sizes.reserve(shape.size());
@@ -16,6 +24,16 @@ namespace rlop::gym_utils {
         return sizes;
     }
 
+    // Converts a Python dtype to the corresponding PyTorch Dtype.
+    //
+    // Parameters:
+    //   dtype: A py::dtype object representing the data type of a numpy array.
+    //
+    // Returns:
+    //   torch::Dtype: The corresponding PyTorch data type.
+    //
+    // Throws:
+    //   std::runtime_error if the numpy data type is unsupported.
     inline torch::Dtype ArrayDtypeToTensorDtype(const py::dtype& dtype) {
         if (dtype.is(py::dtype::of<float>())) 
             return torch::kFloat32;
@@ -37,6 +55,16 @@ namespace rlop::gym_utils {
             throw std::runtime_error("Unsupported data type");
     }
 
+    // Converts a PyTorch Dtype to the corresponding Python dtype.
+    //
+    // Parameters:
+    //   dtype: A torch::Dtype enum value representing the data type of a PyTorch tensor.
+    //
+    // Returns:
+    //   py::dtype: The corresponding Python dtype.
+    //
+    // Throws:
+    //   std::runtime_error if the PyTorch data type is unsupported.
     inline py::dtype TensorDtypeToArrayDtype(const torch::Dtype& dtype) {
         switch (dtype) {
         case torch::kFloat32:
@@ -60,6 +88,13 @@ namespace rlop::gym_utils {
         }
     }
 
+    // Converts a numpy array to a PyTorch tensor, preserving the data type and shape.
+    //
+    // Parameters:
+    //   array: A py::array object representing the numpy array to be converted.
+    //
+    // Returns:
+    //   torch::Tensor: A PyTorch tensor with the same data, data type, and shape as the numpy array.
     inline torch::Tensor ArrayToTensor(const py::array& array) {
         py::buffer_info info = array.request();
         torch::TensorOptions options = torch::TensorOptions().dtype(ArrayDtypeToTensorDtype(array.dtype()));
@@ -71,6 +106,13 @@ namespace rlop::gym_utils {
         return torch::from_blob(info.ptr, shape, stride, options).clone();
     }
 
+    // Converts a PyTorch tensor to a numpy array, ensuring memory continuity and correct data type representation.
+    //
+    // Parameters:
+    //   tensor: A torch::Tensor object to be converted to a numpy array.
+    //
+    // Returns:
+    //   py::array: A numpy array with the same data, data type, and shape as the PyTorch tensor.
     inline py::array TensorToArray(const torch::Tensor& tensor) {
         torch::Tensor tensor_tmp = tensor.contiguous().cpu();
         pybind11::dtype dtype = TensorDtypeToArrayDtype(tensor_tmp.scalar_type());

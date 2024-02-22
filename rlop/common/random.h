@@ -3,6 +3,9 @@
 #include "typedef.h"
 
 namespace rlop {
+    // A utility class for generating random numbers. It wraps around the standard <random>
+    // library functionalities to provide easy-to-use methods for generating numbers from
+    // various distributions (uniform, normal, poisson, etc.) and for shuffling collections.
     class Random {
     public:
         Random() : gen_() {}
@@ -48,6 +51,15 @@ namespace rlop {
             return dist(gen_, typename std::discrete_distribution<T>::param_type(begin, end));
         }
 
+        // Partially shuffles a collection up to 'n' elements.
+        //
+        // Template Parameters:
+        //   TIterator: Iterator type pointing to the collection.
+        //
+        // Parameters:
+        //   begin: Iterator to the beginning of the collection.
+        //   end: Iterator to the end of the collection.
+        //   n: The number of elements to shuffle.
         template<typename TIterator>
         void PartialShuffle(const TIterator& begin, const TIterator& end, Int n) {
             static_assert(std::is_same_v<TIterator, typename std::vector<typename TIterator::value_type>::iterator>, "Random: partial shuffle requires a vector iterator type.");

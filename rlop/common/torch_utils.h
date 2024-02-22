@@ -3,6 +3,12 @@
 #include "typedef.h"
 
 namespace rlop::torch_utils {
+    // Copies the state dictionary from a source PyTorch model to a target model. This includes both
+    // the parameters and buffers (e.g., running mean/variance in batch normalization layers).
+    //
+    // Parameters:
+    //   source_model: The model from which to copy parameters and buffers.
+    //   target_model: Pointer to the model where the parameters and buffers will be copied to.
     inline void CopyStateDict(const torch::nn::Module& source_model, torch::nn::Module* target_model) {
         torch::NoGradGuard no_grad;
         auto params = source_model.named_parameters(true /*recurse*/);
@@ -25,6 +31,13 @@ namespace rlop::torch_utils {
         }
     }
 
+    // Retrieves the names and tensors of all parameters in a PyTorch model.
+    //
+    // Parameters:
+    //   model: The model from which to retrieve parameters.
+    //
+    // Returns:
+    //   A pair consisting of a vector of parameter names and a vector of parameter tensors.
     inline std::pair<std::vector<std::string>, std::vector<torch::Tensor>> GetParameters(const torch::nn::Module& model) {
         std::vector<std::string> names;
         std::vector<torch::Tensor> parameters;
@@ -35,6 +48,13 @@ namespace rlop::torch_utils {
         return { names, parameters };
     }
 
+    // Retrieves the names and tensors of all buffers in a PyTorch model.
+    //
+    // Parameters:
+    //   model: The model from which to retrieve buffers.
+    //
+    // Returns:
+    //   A pair consisting of a vector of buffer names and a vector of buffer tensors.
     inline std::pair<std::vector<std::string>, std::vector<torch::Tensor>> GetBuffers(const torch::nn::Module& model) {
         std::vector<std::string> names;
         std::vector<torch::Tensor> buffers;
@@ -45,6 +65,12 @@ namespace rlop::torch_utils {
         return { names, buffers };
     }
 
+    // Applies Polyak averaging to update target parameters towards source parameters.
+    //
+    // Parameters:
+    //   params: Source parameters to update from.
+    //   target_params: Target parameters to update.
+    //   tau: The interpolation parameter controlling the update extent.
     inline void PolyakUpdate(const std::vector<torch::Tensor>& params, std::vector<torch::Tensor>& target_params, double tau) {
         tau = std::clamp(tau, 0.0, 1.0);
         torch::NoGradGuard no_grad;
@@ -56,6 +82,14 @@ namespace rlop::torch_utils {
         }
     }
 
+    // Compares two PyTorch models to check if they are identical in terms of parameters and buffers.
+    //
+    // Parameters:
+    //   model1: The first model to compare.
+    //   model2: The second model to compare.
+    //
+    // Returns:
+    //   bool: True if both models have identical parameters and buffers, false otherwise.
     inline bool CompareModels(const torch::nn::Module& model1, const torch::nn::Module& model2) {
         auto params1 = model1.named_parameters();
         auto params2 = model2.named_parameters();
@@ -85,18 +119,41 @@ namespace rlop::torch_utils {
         return true;
     }
 
+    // Computes the approximate Kullback–Leibler divergence between two distributions given their log probabilities.
+    //
+    // Parameters:
+    //   log_prob1: Log probabilities of the first distribution.
+    //   log_prob2: Log probabilities of the second distribution.
+    //
+    // Returns:
+    //   torch::Tensor: The computed approximate KL divergence.
     inline torch::Tensor ComputeApproxKL(const torch::Tensor& log_prob1, const torch::Tensor& log_prob2) {
         torch::Tensor log_ratio = log_prob1 - log_prob2;
         return torch::mean((torch::exp(log_ratio) - 1) - log_ratio);
     }
 
+    // Computes the total byte size required to store tensors of given sizes and data type.
+    //
+    // Parameters:
+    //   sizes: Sizes of the tensors.
+    //   type: Data type of the tensors.
+    //
+    // Returns:
+    //   size_t: The total byte size required.
     inline size_t ComputeByteSize(const std::vector<Int>& sizes, const torch::Dtype& type) {
         Int num_elements = std::accumulate(sizes.begin(), sizes.end(), 1, std::multiplies<Int>());
         size_t element_size = torch::elementSize(type);
         return num_elements * element_size;
     }
 
-
+    // Computes the explained variance, a measure of how well a model's predictions approximate the true values.
+    //
+    // Parameters:
+    //   y_pred: Predicted values.
+    //   y_true: True values.
+    //
+    // Returns:
+    //   torch::Tensor: The explained variance.
     inline torch::Tensor ExplainedVariance(const torch::Tensor& y_pred, const torch::Tensor& y_true) {
         TORCH_CHECK(y_true.dim() == 1 && y_pred.dim() == 1, "y_true and y_pred must be 1-dimensional");
         auto var_y = torch::var(y_true, /* unbiased */ false);
@@ -107,6 +164,13 @@ namespace rlop::torch_utils {
         return ev;
     }
 
+    // Computes the hyperbolic arctangent of a tensor, with clamping to avoid numerical errors.
+    //
+    // Parameters:
+    //   value: The input tensor.
+    //
+    // Returns:
+    //   torch::Tensor: The hyperbolic
     inline torch::Tensor Atanh(const torch::Tensor& value) {
         auto eps = std::numeric_limits<decltype(value.item().toFloat())>::epsilon();
         torch::Tensor clamped_value = torch::clamp(value, -1.0 + eps, 1.0 - eps);

@@ -28,7 +28,7 @@ namespace rlop {
         // Pure virtual function to return the total number of child states from the current state.
         virtual Int NumChildStates() const = 0;
 
-        // Pure virtual function to to determine whether a node has been fully expanded.
+        // Pure virtual function to determine whether a node has been fully expanded.
         virtual bool IsExpanded(const Node& node) const = 0;
 
         // Pure virtual function to revert the environment state to the state at the beginning of the algorithm. 
@@ -40,7 +40,7 @@ namespace rlop {
         //   child_i: The index of the child to move to.
         //
         // Return:
-        //   bool: Returns true if the step was successful. Returns false if the step was unsuccessful.
+        //   bool: Returns true if the step was successful.
         virtual bool Step(Int child_i) = 0;
 
         // Pure virtual function to return the reward of the current state. 
@@ -60,7 +60,7 @@ namespace rlop {
             rand_.Seed(seed);
         }
 
-        // Performs the MCTS search over a specified number of iterations.
+        // Performs the MCTS search over a maximum number of iterations.
         //
         // Parameters:
         //   max_num_iters: The maximum number of iterations.
@@ -76,7 +76,7 @@ namespace rlop {
             }
         }
 
-         // Checks if the search should continue.
+        // Checks if the search should continue.
         virtual bool Proceed() {
             return num_iters_ < max_num_iters_; 
         }
@@ -170,13 +170,14 @@ namespace rlop {
             return UCB1(path_.back()->children[child_i]->mean_reward, path_.back()->children[child_i]->num_visits, path_.back()->num_visits, coef_);
         }
 
-        // Selects the next child node to explore based on the tree policy, typically UCB1 formula.
+        // Selects the next child node to explore based on the tree policy.
         //
         // Parameters:
         //   child_i: The index of the child node.
+        //
         // Returns:
-        //   std::optional<Int>: The index of the child node with the highest UCB1 score. If the current node has no legal children, returns
-        //                       std::nullopt.
+        //   std::optional<Int>: The index of the child node with the highest UCB1 score. If the current node has no
+        //                       legal children, returns std::nullopt.
         virtual std::optional<Int> SelectTreePolicy() {
             Int best = kIntNull;
             double best_score = std::numeric_limits<double>::lowest();
@@ -192,11 +193,11 @@ namespace rlop {
             return { best };
         }
 
-        // Selects a child node to expand next from the current node's children. This selection can be random or based on some heuristic.
-        //
+        // Selects a child node to expand next from the current node's children. This selection can be random or based on
+        // some heuristic.
         // Returns:
-        //   std::optional<Int>: The index of the child node selected for expansion. If the current node has no legal children, returns
-        //                       std::nullopt.
+        //   std::optional<Int>: The index of the child node selected for expansion. If the current node has no legal
+        //                       children, returns std::nullopt.
         virtual std::optional<Int> SelectToExpand() {
             if (path_.back()->children.empty())
                 return std::nullopt;
@@ -206,8 +207,8 @@ namespace rlop {
         // Selects a child node randomly from the current state. This method is used during the simulation phase.
         //
         // Returns:
-        //   std::optional<Int>: The index of the randomly selected child node. If there are no legal child states available from the current state,
-        //                       returns std::nullopt.
+        //   std::optional<Int>: The index of the randomly selected child node. If there are no legal child states available
+        //                        from the current state, returns std::nullopt.
         virtual std::optional<Int> SelectRandom() {
             Int num_children = NumChildStates();
             if (num_children <= 0)

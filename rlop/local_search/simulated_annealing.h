@@ -84,8 +84,8 @@ namespace rlop {
             return SelectLocal();
         }
        
-        // Determines whether to accept a new solution based on its cost relative to the current
-        // solution and the current temperature.
+        // Determines whether to accept a new solution based on its cost relative to the current solution
+        // and the current temperature.
         //
         // Parameters:
         //   new_cost: The cost of the new solution.

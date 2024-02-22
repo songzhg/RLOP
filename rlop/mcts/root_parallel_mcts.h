@@ -4,15 +4,24 @@
 #include "rlop/common/random.h"
 
 namespace rlop {
+    // Implements a root parallel version of the Monte Carlo Tree Search (MCTS) algorithm. This class
+    // allows for simultaneous exploration of multiple start nodes in parallel, making it suitable for
+    // environments where multiple simulations can be run concurrently.
     class RootParallelMCTS : public BaseAlgorithm {
     public:
         struct Node {
             double mean_reward = 0;
             Int num_visits = 0;
-            Int num_children = 0;
+            Int num_children = 0; // The number of children nodes expanded.
             std::vector<Node*> children;
         };
         
+        // Constructs a RootParallelMCTS instance with specified parameters.
+        //
+        // Parameters:
+        //   num_envs: The number of environments to run in parallel. Each environment represents an
+        //             independent instance of the problem space for parallel exploration.
+        //   coef: The exploration coefficient used in the UCB1 formula, Default is sqrt(2).
         RootParallelMCTS(Int num_envs, double coef = std::sqrt(2)) : 
             num_iters_(num_envs, 0),
             max_num_iters_(num_envs, 0),
@@ -23,16 +32,38 @@ namespace rlop {
 
         virtual ~RootParallelMCTS() = default;
 
+        // Pure virtual function to return the total number of child states from the current state for a specified environment .
         virtual Int NumChildStates(Int env_i) const = 0;
 
+        // Pure virtual function to determine whether a node has been fully expanded for a specified environment.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //
+        // Return:
+        //   bool: Returns true if the node is fully expanded.
         virtual bool IsExpanded(Int env_i, const Node& node) const = 0;
 
+        // Pure virtual function to revert the state of a specified environment to its state at the beginning of the algorithm. 
+        //
+        // Parameters:
+        //   env_i: The index of environment.
         virtual void RevertState(Int env_i) = 0;
 
+        // Pure virtual function to advance a specified environment state based on the selected child index. 
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //   child_i: The index of the child to move to.
+        //
+        // Return:
+        //   bool: Returns true if the step was successful. Returns false if the step was unsuccessful.
         virtual bool Step(Int env_i, Int child_i) = 0;
 
+        // Pure virtual function to return the reward of the current state for a specified environment.
         virtual double Reward(Int env_i) = 0;
 
+        // Resets the algorithm.
         virtual void Reset() override {
             for (Int i=0; i<paths_.size(); ++i) {
                 if (!paths_[i].empty()) {
@@ -55,6 +86,7 @@ namespace rlop {
             }
         }
 
+        // Starts the asynchronous search across all environments, running each environment's search in parallel.
         virtual void SearchAsync(Int max_num_iters) {
             #pragma omp parallel for
             for (Int i=0; i<num_envs(); ++i) {
@@ -62,6 +94,11 @@ namespace rlop {
             }
         }
 
+        // Performs the MCTS search over a maximum number of iterations for a specified environment .
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //   max_num_iters: The maximum number of iterations.
         virtual void Search(Int env_i, Int max_num_iters) {
             num_iters_[env_i] = 0;
             max_num_iters_[env_i] = max_num_iters;
@@ -74,10 +111,15 @@ namespace rlop {
             }
         }
 
+        // Checks if the search of a specified environment should continue.
         virtual bool Proceed(Int env_i) {
             return num_iters_[env_i] < max_num_iters_[env_i]; 
         }
 
+        // Selects the next node to explore in the tree based on the tree policy for a specified environment.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
         virtual bool Select(Int env_i) {
             if (paths_[env_i].empty())
                 return true;
@@ -92,6 +134,10 @@ namespace rlop {
             return true;
         }
 
+        // Expands the current node by adding a new child node to the tree for a specified environment.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
         virtual bool Expand(Int env_i) {
             if (paths_[env_i].back()->children.empty())
                 paths_[env_i].back()->children = std::vector<Node*>(NumChildStates(env_i));
@@ -108,6 +154,10 @@ namespace rlop {
             return Step(env_i, *child_i);
         }
 
+        // Simulates the outcome from the current state to the end of the episode for a specified environment.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
         virtual bool Simulate(Int env_i) {
             while (true) {
                 auto i = SelectRandom(env_i); 
@@ -116,6 +166,10 @@ namespace rlop {
             }
         }
 
+        // Backpropagates the simulation results through the path in the tree for a specified environment.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
         virtual void BackPropagate(Int env_i) {
             double reward = Reward(env_i);
             while (paths_[env_i].size() > 1) {
@@ -150,12 +204,29 @@ namespace rlop {
             node->num_visits += 1;
         }
 
+        // Computes the value of a child node using the UCB1 formula for a specified environment.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //   child_i: The index of the child node.
+        //
+        // Return:
+        //   double: the value of the child node.
         virtual double TreePolicy(Int env_i, Int child_i) {
             if (paths_[env_i].back()->children[child_i] == nullptr)
                 return std::numeric_limits<double>::lowest();
             return UCB1(paths_[env_i].back()->children[child_i]->mean_reward, paths_[env_i].back()->children[child_i]->num_visits, paths_[env_i].back()->num_visits, coef_);
         }
 
+        // Selects the next child node to explore based on the tree policy for a specified environment.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //   child_i: The index of the child node.
+        //
+        // Returns:
+        //   std::optional<Int>: The index of the child node with the highest UCB1 score. If the current node has no legal
+        //                       children, returns std::nullopt.
         virtual std::optional<Int> SelectTreePolicy(Int env_i) {
             Int best = kIntNull;
             double best_score = std::numeric_limits<double>::lowest();
@@ -171,12 +242,30 @@ namespace rlop {
             return { best };
         }
 
+        // Selects a child node to expand next from the current node's children for a specified environment. This selection can
+        // be random or based on some heuristic.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //
+        // Returns:
+        //   std::optional<Int>: The index of the child node selected for expansion. If the current node has no legal children,
+        //                       returns std::nullopt.
         virtual std::optional<Int> SelectToExpand(Int env_i) {
             if (paths_[env_i].back()->children.empty())
                 return std::nullopt;
             return { rands_[env_i].Uniform(size_t(0), paths_[env_i].back()->children.size()-1) };
         }
 
+        // Selects a child node randomly from the current state for a specified environment. This method is used during the 
+        // simulation phase.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //
+        // Returns:
+        //   std::optional<Int>: The index of the randomly selected child node. If there are no legal child states available from
+        //                       the current state, returns std::nullopt.
         virtual std::optional<Int> SelectRandom(Int env_i) {
             Int num_children = NumChildStates(env_i);
             if (num_children <= 0)

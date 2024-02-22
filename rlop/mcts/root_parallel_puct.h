@@ -8,6 +8,17 @@ namespace rlop {
 
         virtual ~RootParallelPUCT() = default;
 
+        // Pure virtual function to retrieve the probability of choosing a particular child node as indicated
+        // by a policy for a specified environment. This is a pure virtual function that should be implemented
+        // to return the probability of selecting the child at index `child_i` according to some policy, 
+        // typically provided by a neural network or other predictive model.
+        //
+        // Parameters:
+        //   env_i: The index of environment.
+        //   child_i: The index of the child node for which the selection probability is requested.
+        //
+        // Returns:
+        //   double: The probability of selecting the child node at index `child_i`.
         virtual double GetProb(Int env_i, Int child_i) = 0;
 
         virtual double TreePolicy(Int env_i, Int child_i) override {
