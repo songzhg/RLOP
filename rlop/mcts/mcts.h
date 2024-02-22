@@ -4,29 +4,49 @@
 #include "rlop/common/random.h"
 
 namespace rlop {
+    // Implements the Monte Carlo Tree Search (MCTS) algorithm for decision making in domains
+    // with discrete action spaces.
+    // The class is abstract and requires specific implementations of NumChildStates, IsExpanded,
+    // RevertState, Step, and Reward.
     class MCTS : public BaseAlgorithm {
     public:
         struct Node {
             double mean_reward = 0;
             Int num_visits = 0;
-            Int num_children = 0;
+            Int num_children = 0; // The number of children nodes expanded.
             std::vector<Node*> children;
         };
         
+        // Constructs an MCTS with a exploration coefficient.
+        //
+        // Parameters:
+        //   coef: The exploration coefficient used in the UCB1 formula, Default is sqrt(2).
         MCTS(double coef = std::sqrt(2)) : coef_(coef) {}
 
         virtual ~MCTS() = default;
 
+        // Pure virtual function to return the total number of child states from the current state.
         virtual Int NumChildStates() const = 0;
 
+        // Pure virtual function to to determine whether a node has been fully expanded.
         virtual bool IsExpanded(const Node& node) const = 0;
 
+        // Pure virtual function to revert the environment state to the state at the beginning of the algorithm. 
         virtual void RevertState() = 0;
 
+        // Pure virtual function to advance the environment state based on the selected child index. 
+        //
+        // Parameters:
+        //   child_i: The index of the child to move to.
+        //
+        // Return:
+        //   bool: Returns true if the step was successful. Returns false if the step was unsuccessful.
         virtual bool Step(Int child_i) = 0;
 
+        // Pure virtual function to return the reward of the current state. 
         virtual double Reward() = 0;
 
+        // Resets the algorithm.
         virtual void Reset() override {
             if (!path_.empty()) {
                 Release(path_[0]);
@@ -40,6 +60,10 @@ namespace rlop {
             rand_.Seed(seed);
         }
 
+        // Performs the MCTS search over a specified number of iterations.
+        //
+        // Parameters:
+        //   max_num_iters: The maximum number of iterations.
         virtual void Search(Int max_num_iters) {
             num_iters_ = 0;
             max_num_iters_ = max_num_iters;
@@ -52,10 +76,12 @@ namespace rlop {
             }
         }
 
+         // Checks if the search should continue.
         virtual bool Proceed() {
             return num_iters_ < max_num_iters_; 
         }
 
+        // Selects the next node to explore in the tree based on the tree policy.
         virtual bool Select() {
             if (path_.empty())
                 return true;
@@ -70,6 +96,7 @@ namespace rlop {
             return true;
         }
 
+        // Expands the current node by adding a new child node to the tree.
         virtual bool Expand() {
             if (path_.back()->children.empty())
                 path_.back()->children = std::vector<Node*>(NumChildStates());
@@ -86,6 +113,7 @@ namespace rlop {
             return Step(*child_i);
         }
 
+        // Simulates the outcome from the current state to the end of the episode.
         virtual bool Simulate() {
             while (true) {
                 auto i = SelectRandom(); 
@@ -94,6 +122,7 @@ namespace rlop {
             }
         }
 
+        // Backpropagates the simulation results through the path in the tree.
         virtual void BackPropagate() {
             double reward = Reward();
             while (path_.size() > 1) {
@@ -128,12 +157,26 @@ namespace rlop {
             node->num_visits += 1;
         }
 
+        // Computes the value of a child node using the UCB1 formula.
+        //
+        // Parameters:
+        //   child_i: The index of the child node.
+        //
+        // Return:
+        //   double: the value of the child node.
         virtual double TreePolicy(Int child_i) {
             if (path_.back()->children[child_i] == nullptr)
                 return std::numeric_limits<double>::lowest();
             return UCB1(path_.back()->children[child_i]->mean_reward, path_.back()->children[child_i]->num_visits, path_.back()->num_visits, coef_);
         }
 
+        // Selects the next child node to explore based on the tree policy, typically UCB1 formula.
+        //
+        // Parameters:
+        //   child_i: The index of the child node.
+        // Returns:
+        //   std::optional<Int>: The index of the child node with the highest UCB1 score. If the current node has no legal children, returns
+        //                       std::nullopt.
         virtual std::optional<Int> SelectTreePolicy() {
             Int best = kIntNull;
             double best_score = std::numeric_limits<double>::lowest();
@@ -149,12 +192,22 @@ namespace rlop {
             return { best };
         }
 
+        // Selects a child node to expand next from the current node's children. This selection can be random or based on some heuristic.
+        //
+        // Returns:
+        //   std::optional<Int>: The index of the child node selected for expansion. If the current node has no legal children, returns
+        //                       std::nullopt.
         virtual std::optional<Int> SelectToExpand() {
             if (path_.back()->children.empty())
                 return std::nullopt;
             return { rand_.Uniform(size_t(0), path_.back()->children.size() - 1) };
         }
 
+        // Selects a child node randomly from the current state. This method is used during the simulation phase.
+        //
+        // Returns:
+        //   std::optional<Int>: The index of the randomly selected child node. If there are no legal child states available from the current state,
+        //                       returns std::nullopt.
         virtual std::optional<Int> SelectRandom() {
             Int num_children = NumChildStates();
             if (num_children <= 0)
