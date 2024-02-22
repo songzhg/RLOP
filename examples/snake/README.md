@@ -46,12 +46,12 @@ This example presents a variant of the classic arcade Snake game, where players 
     ```
 2. **Run**
    
-    Run DQN.
+    Train and evaluate DQN.
     ```
     ./examples/snake/snake dqn
     ```
 
-    Run PPO.
+    Train and evaluate PPO.
     ```
     ./examples/snake/snake ppo
     ```

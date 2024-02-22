@@ -15,7 +15,7 @@ A multi-armed bandit (MAB) problem is a classic scenario in probability theory a
     ```
 2. **Run**
    
-    Run epsilon greed, softmax, UCB1, persuit, and persuit epsilon greedy. This example runs 2000 times experiments on 1000 steps' bandit for each method. The average reward and the percentage of optimal actions taken by each step are recorded into result files (reward_results.txt and opt_results.txt). You can use the python funtion "csv_to_line_chart" provided in python/utils.py to plot these results.
+    Run epsilon greed, softmax, UCB1, persuit, and persuit epsilon greedy methods. This example takes 2000 times experiments on 1000 steps' bandit for each method. The average reward and the percentage of optimal actions taken by each step are recorded into result files (reward_results.txt and opt_results.txt). You can use the python funtion "csv_to_line_chart" provided in python/utils.py to plot these results.
 
     ```
     ./examples/multi_armed_bandit/multi_armed_bandit

@@ -52,12 +52,12 @@ Lunar lander is a classic rocket trajectory optimization problem, which is part 
     ```
 2. **Run**
 
-    Run DQN.
+    Train and evaluate DQN.
     ```
     ./examples/lunar_lander/lunar_lander dqn
     ```
 
-    Run PPO.
+    Train and evaluate PPO.
     ```
     ./examples/lunar_lander/lunar_lander ppo
     ```
