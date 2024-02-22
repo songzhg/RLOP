@@ -1,6 +1,6 @@
-# Continuous Lunar Lander
+# Snake
 
-This the continuous version of lunar lander (https://gymnasium.farama.org/environments/box2d/lunar_lander/).
+This example presents a variant of the classic arcade Snake game, where players navigate a continuously growing snake to consume food on an 11 x 7 board. Uniquely, this version features always two pieces of food on the board and eliminates "walls" at the borders. Instead, when the snake's head crosses the boundary, it reappears on the opposite side.
 
 ## Requirements
 
@@ -26,18 +26,12 @@ This the continuous version of lunar lander (https://gymnasium.farama.org/enviro
     endif (MSVC)
     ```
 
-2. **Installation of Gymnasium:**
+2. **Installation of :**
+    SFML provides a simple interface for games and multimedia application.
     ```
-    pip install gymnasium[box2d]
+    sudo apt-get install libsfml-dev
     ```
 
-3. **Installation of pybind11:**
-    ```
-    cd path/to/project
-    mkdir third_party
-    cd third_party
-    git clone -b stable https://github.com/pybind/pybind11.git
-    ```
 
 ## Run
 
@@ -47,19 +41,24 @@ This the continuous version of lunar lander (https://gymnasium.farama.org/enviro
     cd path/to/project
     mkdir build
     cd build
-    cmake .. -DBUILD_CONTINUOUS_LUNAR_LANDER=ON
+    cmake .. -DBUILD_SNAKE=ON
     make
     ```
 2. **Run**
+   
+    Run DQN.
+    ```
+    ./examples/snake/snake dqn
+    ```
 
     Run PPO.
     ```
-    ./examples/continuous_lunar_lander/continuous_lunar_lander ppo
+    ./examples/snake/snake ppo
     ```
 
-    Run SAC.
+    Run MCTS in human mode.
     ```
-    ./examples/continuous_lunar_lander/continuous_lunar_lander sac
+    ./examples/snake/snake mcts
     ```
     
 

@@ -50,12 +50,14 @@ Lunar lander is a classic rocket trajectory optimization problem, which is part 
     cmake .. -DBUILD_LUNAR_LANDER=ON
     make
     ```
-2. **Run DQN**
+2. **Run**
+
+    Run DQN.
     ```
     ./examples/lunar_lander/lunar_lander dqn
     ```
 
-3. **Run PPO**
+    Run PPO.
     ```
     ./examples/lunar_lander/lunar_lander ppo
     ```

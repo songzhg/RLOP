@@ -67,7 +67,7 @@ namespace snake {
             return best_i;
         }
 
-        void Evaluate(bool render, Int num_time_steps, Int max_num_iters = 30000) {
+        void Evaluate(Int num_time_steps, bool render, Int max_num_iters = 30000) {
             Problem problem(render);
             problem.Reset();
             for (Int i=0; i< num_time_steps; ++i) {

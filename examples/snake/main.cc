@@ -2,29 +2,48 @@
 #include "ppo.h"
 #include "mcts.h"
 #include "rlop/rl/evaluator.h"
+#include "rlop/common/timer.h"
 
-int main() {
+int main(int argc, char *argv[]) {
     using namespace snake;
-    
-    // PPO solver(16);
-    // solver.Reset();
-    // solver.Learn(1e7, 1, 20);
-    // solver.Load("ppo_20240207_115356_688128.pth");
 
-    // DQN solver(16);
-    // solver.Reset();
-    // solver.Learn(1e7, 1e3, 1e5);
-    // solver.Load("dqn_20240207_141112_9600016.pth");
+    rlop::Timer timer;
 
-    // rlop::RLEvaluator evaluator;
-    // evaluator.Reset();
-    // auto [mean_reward, std_reward] = evaluator.Evaluate(&solver, 1e3);
-    // std::cout << mean_reward << std::endl;
-    // std::cout << std_reward << std::endl;
+    Int num_cpu = 16;
+    Int num_time_steps = 1e7;
 
-    MCTS solver(4);
-    solver.Reset();
-    solver.Evaluate(true, 1e7);
+    if (argc <= 1 || std::string(argv[1]) == "dqn") {
+        std::cout << "DQN training..." << std::endl;
+        DQN solver(num_cpu);
+        solver.Reset();
+        timer.Start();
+        solver.Learn(num_time_steps, 1e3);
+        timer.Stop();
+        solver.Save("data/snake/rlop_dqn.pth");
 
+        rlop::RLEvaluator evaluator;
+        evaluator.Reset();
+        auto [mean_reward, std_reward] = evaluator.Evaluate(&solver, 1e3);
+        std::cout << mean_reward << " " << std_reward << " " << timer.duration() << std::endl;
+    }
+    else if (std::string(argv[1]) == "ppo") {
+        std::cout << "PPO training..." << std::endl;
+        PPO solver(num_cpu);
+        solver.Reset();
+        timer.Start();
+        solver.Learn(num_time_steps, 1);
+        timer.Stop();
+        solver.Save("data/snake/rlop_ppo.pth");
+
+        rlop::RLEvaluator evaluator;
+        evaluator.Reset();
+        auto [mean_reward, std_reward] = evaluator.Evaluate(&solver, 1e3);
+        std::cout << mean_reward << " " << std_reward << " " << timer.duration() << std::endl;
+    }
+    else if (std::string(argv[1]) == "mcts") {
+        MCTS solver(4);
+        solver.Reset();
+        solver.Evaluate(num_time_steps, true);
+    }
     return 0;
 }
