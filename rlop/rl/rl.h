@@ -4,8 +4,16 @@
 #include "rlop/common/torch_utils.h"
 
 namespace rlop {
+    // The RL class is as an abstract base class for reinforcement learning algorithms,
+    // providing common interfaces for training, managing environments, and performing evaluations.
+    // It inherits from BaseAlgorithm and integrates closely with PyTorch for neural network operations.
     class RL : public BaseAlgorithm {
     public:
+         // Constructs an RL algorithm instance with a specified output path for logging and a computation device.
+        //
+        // Parameters:
+        //   output_path: Path where training logs and model checkpoints will be saved.
+        //   device: The PyTorch computation device (e.g., CPU, CUDA GPU).
         RL(const std::string& output_path, const torch::Device& device) : 
             output_path_(output_path),
             device_(device)
@@ -13,10 +21,21 @@ namespace rlop {
 
         virtual ~RL() = default;
 
+        // Pure virtual function to return the number of environments being managed by this RL instance.
         virtual Int NumEnvs() const = 0;
 
+        // Pure virtual function to reset the environment to its initial state. 
         virtual torch::Tensor ResetEnv() = 0;
 
+        // Pure virtual function to perform a step in the environment using the provided actions.
+        //
+        // Parameters:
+        //   action: action to take.
+        //
+        //   std::array<torch::Tensor, 3>: A tuple containing three elements:
+        //     - [0]: Observation (torch::Tensor) - The next observation from the environment after taking the action.
+        //     - [1]: Reward (torch::Tensor) - The reward obtained after taking the action.
+        //     - [2]: Done (torch::Tensor) - A boolean flag indicating whether the episode has ended.
         virtual std::array<torch::Tensor, 3> Step(const torch::Tensor& action) = 0;
 
         virtual void CollectRollouts() = 0;
