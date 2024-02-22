@@ -39,8 +39,10 @@ namespace rlop {
 
         virtual ~PPO() = default;
 
+        // Pure virtual function to create and return a unique pointer to a RolloutBuffer object.
         virtual std::unique_ptr<RolloutBuffer> MakeRolloutBuffer() const = 0; 
 
+        // Pure virtual function to create and return a unique pointer to a PPOPolicy object.
         virtual std::unique_ptr<PPOPolicy> MakePPOPolicy() const = 0;
        
         virtual void Reset() override {

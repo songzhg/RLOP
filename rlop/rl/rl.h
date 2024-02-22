@@ -38,10 +38,27 @@ namespace rlop {
         //     - [2]: Done (torch::Tensor) - A boolean flag indicating whether the episode has ended.
         virtual std::array<torch::Tensor, 3> Step(const torch::Tensor& action) = 0;
 
+        // Pure virtual function to collect rollouts from the environment. 
         virtual void CollectRollouts() = 0;
 
+        // Get the policy action from an observation (and optional hidden state). Includes sugar-coating to handle different observations
+        // (e.g. normalizing images).
+        //
+        // Parameters:
+        // observation: the input observation
+        //   param state: The last hidden states (can be None, used in recurrent policies)
+        //   episode_start: The last masks (can be None, used in recurrent policies) this correspond to beginning of episodes, where the 
+        //                  hidden states of the RNN must be reset.
+        //     
+        //   param deterministic: Whether or not to return deterministic actions.
+        //
+        // Returns: 
+        //   std::array<torch::Tensor, 3>: An array containing:
+        //     - [0]: The model's action recommended by the policy for the given observation.
+        //     - [1]: The next hidden state (used in recurrent policies)
         virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) = 0;
 
+        // Pure virtual function to train the model on collected experience.
         virtual void Train() = 0;
 
         virtual void Reset() override {

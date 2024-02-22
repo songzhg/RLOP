@@ -41,18 +41,21 @@ namespace rlop {
 
         virtual ~SAC() = default;
 
+        // Pure virtual function to create and return a unique pointer to a ReplayBuffer object.
         virtual std::unique_ptr<ReplayBuffer> MakeReplayBuffer() const = 0; 
 
+        // Pure virtual function to create and return a unique pointer to a SACActor object.
         virtual std::unique_ptr<SACActor> MakeActor() const = 0;
 
+        // Pure virtual function to create and return a unique pointer to a SACCritic object.
         virtual std::unique_ptr<SACCritic> MakeCritic() const = 0;
 
+        // Pure virtual function to sample an action from the action space.
+        //
+        // Returns:
+        //   torch::Tensor: A tensor representing the selected actions.
         virtual torch::Tensor SampleAction() = 0;
 
-        virtual torch::Tensor ResetEnv() = 0;
-
-        virtual std::array<torch::Tensor, 3> Step(const torch::Tensor& action) = 0;
-        
         virtual void Reset() override {
             RL::Reset();
             replay_buffer_ = MakeReplayBuffer();

@@ -35,10 +35,16 @@ namespace rlop {
 
         virtual ~DQN() = default;
 
+        // Pure virtual function to create and return a unique pointer to a ReplayBuffer object.
         virtual std::unique_ptr<ReplayBuffer> MakeReplayBuffer() const = 0;
 
+        // Pure virtual function to create and return a unique pointer to a QNet object.
         virtual std::unique_ptr<QNet> MakeQNet() const = 0;
 
+        // Pure virtual function to sample an action from the action space.
+        //
+        // Returns:
+        //   torch::Tensor: A tensor representing the selected actions.
         virtual torch::Tensor SampleAction() = 0;
 
         virtual void Reset() override {
