@@ -35,7 +35,7 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
   - **Installation of libtorch:**
     Follow the instructions on the official PyTorch website: https://pytorch.org/cppdocs/installing.html. Make sure to select the appropriate version for your operating system and CUDA version (if applicable).
 
-- **For Gymnasium environments**: RLOP includes a C++ wrapper (GymEnv and GymVectorEnv class) for Gymnasium environments to support reinforcement learning algorithms in C++. To fully utilize this capability, specific requirements need to be met:
+- **For Gymnasium environments**: RLOP includes a C++ wrapper (GymEnv and GymVectorEnv class) for Gymnasium environments to support reinforcement learning algorithms in C++. To fully utilize this capability, following requirements need to be met:
  
   - **Installation of Gymnasium:**
     Follow the official gymnasium documentation to set up the environments you need: https://github.com/Farama-Foundation/Gymnasium.
