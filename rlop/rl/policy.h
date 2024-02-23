@@ -2,7 +2,6 @@
 #include "rlop/common/torch_utils.h"
 
 namespace rlop {
-    // RLPolicy is an abstract class that defines the interface for reinforcement learning policies.
     class RLPolicy : public torch::nn::Module {
     public:
         RLPolicy() = default;

@@ -4,10 +4,9 @@
 #include "rlop/rl/buffers.h"
 
 namespace rlop {
-    // The SAC class implements the Soft Actor-Critic algorithm, a state-of-the-art RL method
-    // that balances exploration and exploitation by maximizing a trade-off between expected return
-    // and entropy, a measure of randomness in the policy. This implementation references the SAC
-    // implementation of Stable Baselines3.
+    // The SAC class implements the Soft Actor-Critic algorithm which balances exploration and 
+    // exploitation by maximizing a trade-off between expected return and entropy. This
+    // implementation references the SAC implementation of Stable Baselines3.
     // Paper: https://arxiv.org/abs/1801.01290
     class SAC : public RL {
     public:

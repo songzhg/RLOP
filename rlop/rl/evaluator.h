@@ -3,10 +3,9 @@
 #include "rlop/common/utils.h"
 
 namespace rlop {
-    // RLEvaluator is a class dedicated to the evaluation of reinforcement learning algorithms.
-    // It provides functionality to systematically assess the performance of an RL model
-    // by executing it in the environment for a given number of episodes and collecting
-    // statistics about rewards and episode lengths.
+    // RLEvaluator is a classs to assess the performance of an RL model by executing it in
+    // the environment for a given number of episodes and collecting statistics about rewards 
+    // and episode lengths.
     class RLEvaluator {
     public:
         RLEvaluator() = default;
