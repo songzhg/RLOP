@@ -2,7 +2,7 @@
 
 This example presents a variant of the classic arcade Snake game, where players navigate a continuously growing snake to consume food on an 11 x 7 board. Uniquely, this version features always two pieces of food on the board and eliminates "walls" at the borders. Instead, when the snake's head crosses the boundary, it reappears on the opposite side.
 
-<img src="../../docs/img/example_snake.png" alt="" width="330" height="210">
+<img src="../../docs/img/example_snake.png" alt="" width="440" height="280">
 
 ## Requirements
 
