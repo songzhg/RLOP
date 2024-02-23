@@ -4,21 +4,26 @@
 #include "rlop/rl/buffers.h"
 
 namespace rlop {
+    // The PPO class implements the Proximal Policy Optimization algorithm, which is designed for efficient and effective
+    // training of deep neural network policies, characterized by its use of the clipping mechanism to limit the policy 
+    // update step, aiming to improve stability and reliability of the training process. This implementation references 
+    // the PPO implementation of Stable Baselines3.
+    // Paper: https://arxiv.org/abs/1707.06347
     class PPO : public RL {
     public:
         PPO(
-            Int batch_size = 64,
-            Int num_epochs = 10,
-            double lr = 1e-6,
-            double gamma = 0.99,
-            double clip_range = 0.2,
-            double clip_range_vf = 0,
-            bool normalize_advantage = true,
-            double ent_coef = 0,
-            double vf_coef = 0.5,
-            double gae_lambda = 0.95,
-            double max_grad_norm = 10,
-            double target_kl = 0.1,
+            Int batch_size = 64, // Size of batches taken from the rollout buffer for training.
+            Int num_epochs = 10, // Number of epoch when optimizing the surrogate loss
+            double lr = 1e-6, // Learning rate for the Adam optimizer.
+            double gamma = 0.99, // Discount factor for future rewards.
+            double clip_range = 0.2, // PPO clipping range for policy updates.
+            double clip_range_vf = 0, // Optional clipping range for value function updates.
+            bool normalize_advantage = true, // Flag to normalize advantage estimates.
+            double ent_coef = 0, // Coefficient for entropy in the objective function.
+            double vf_coef = 0.5, // Coefficient for value function loss in the total loss.
+            double gae_lambda = 0.95, // Factor for Generalized Advantage Estimation.
+            double max_grad_norm = 10, // Maximum gradient norm for gradient clipping.
+            double target_kl = 0.1, // Target KL divergence threshold for early stopping.
             const std::string& output_path = "",
             const torch::Device& device = torch::kCPU
         ) :
@@ -39,10 +44,10 @@ namespace rlop {
 
         virtual ~PPO() = default;
 
-        // Pure virtual function to create and return a unique pointer to a RolloutBuffer object.
+        // Factory method to create and return a unique pointer to a RolloutBuffer object.
         virtual std::unique_ptr<RolloutBuffer> MakeRolloutBuffer() const = 0; 
 
-        // Pure virtual function to create and return a unique pointer to a PPOPolicy object.
+        // Factory method to create and return a unique pointer to a PPOPolicy object.
         virtual std::unique_ptr<PPOPolicy> MakePPOPolicy() const = 0;
        
         virtual void Reset() override {
@@ -53,6 +58,11 @@ namespace rlop {
             optimizer_ = MakeOptimizer();
             observation_ = ResetEnv();
             episode_start_ = torch::ones({ rollout_buffer_->num_envs() }, torch::kBool);
+        }
+
+        // Factory method to create an optimizer object for the policy network. By default, uses the Adam optimizer.
+        virtual std::unique_ptr<torch::optim::Optimizer> MakeOptimizer() const {
+            return std::make_unique<torch::optim::Adam>(policy_.get()->parameters(), torch::optim::AdamOptions(lr_));
         }
     
         virtual void RegisterLogItems() override {
@@ -262,10 +272,6 @@ namespace rlop {
                 archive->write("max_grad_norm", torch::tensor(max_grad_norm_));
                 archive->write("target_kl", torch::tensor(target_kl_));
             }
-        }
-
-        virtual std::unique_ptr<torch::optim::Optimizer> MakeOptimizer() const {
-            return std::make_unique<torch::optim::Adam>(policy_.get()->parameters(), torch::optim::AdamOptions(lr_));
         }
 
         const std::unique_ptr<RolloutBuffer>& rollout_buffer() const {

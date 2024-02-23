@@ -43,11 +43,14 @@ namespace rlop {
         //   bool: True if the move was made successfully, false otherwise.
         virtual bool MakeMove(Int move) = 0;
         
-        // Pure virtual function to undoe a move, reverting the game state to its previous state.
+        // Pure virtual function to undo a move, reverting the game state to its previous state.
         //
         // Parameters:
         //   move: The move to undo.
         virtual void UndoMove(Int move) = 0;
+
+        // Resets the algorithm.
+        virtual void Reset() override {}
 
         // Implements the Alpha-Beta pruning algorithm for a given depth, alpha, and beta values.
         //

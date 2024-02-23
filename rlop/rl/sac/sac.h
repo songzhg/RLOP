@@ -4,20 +4,26 @@
 #include "rlop/rl/buffers.h"
 
 namespace rlop {
+    // The SAC class implements the Soft Actor-Critic algorithm, a state-of-the-art RL method
+    // that balances exploration and exploitation by maximizing a trade-off between expected return
+    // and entropy, a measure of randomness in the policy. This implementation references the SAC
+    // implementation of Stable Baselines3.
+    // Paper: https://arxiv.org/abs/1801.01290
     class SAC : public RL {
     public:
         SAC(
-            Int learning_starts = 100,
-            Int batch_size = 256,
-            double lr = 3e-4,
-            double tau = 0.005,
-            double gamma = 0.99,
-            double ent_coef = 1.0,
-            bool auto_ent_coef = true,
+            Int learning_starts = 100, // Number of steps to observe before starting training.
+            Int batch_size = 256, // Size of batches taken from the replay buffer for training.
+            double lr = 3e-4, // Learning rate for all optimizers.
+            double tau = 0.005, // Coefficient for soft update of the target network.
+            double gamma = 0.99, // Discount factor for future rewards.
+            double ent_coef = 1.0, // Coefficient for the entropy term, controlling exploration.
+            bool auto_ent_coef = true, // Whether to automatically adjust the entropy coefficient.
             const std::optional<double>& target_entropy = std::nullopt,
-            Int train_freq = 1,
-            Int gradient_steps = 1,
-            Int target_update_interval = 1,
+            // Target entropy for automatic adjustment.
+            Int train_freq = 1, // Number of environment steps between each training step.
+            Int gradient_steps = 1, // Number of gradient steps per training step.
+            Int target_update_interval = 1, // Number of steps between updates to the target network.
             const std::string& output_path = ".",
             const torch::Device& device = torch::kCPU
         ) :
@@ -41,13 +47,13 @@ namespace rlop {
 
         virtual ~SAC() = default;
 
-        // Pure virtual function to create and return a unique pointer to a ReplayBuffer object.
+        // Factory method to create and return a unique pointer to a ReplayBuffer object.
         virtual std::unique_ptr<ReplayBuffer> MakeReplayBuffer() const = 0; 
 
-        // Pure virtual function to create and return a unique pointer to a SACActor object.
+        // Factory method to create and return a unique pointer to a SACActor object.
         virtual std::unique_ptr<SACActor> MakeActor() const = 0;
 
-        // Pure virtual function to create and return a unique pointer to a SACCritic object.
+        // Factory method to create and return a unique pointer to a SACCritic object.
         virtual std::unique_ptr<SACCritic> MakeCritic() const = 0;
 
         // Pure virtual function to sample an action from the action space.
@@ -84,6 +90,20 @@ namespace rlop {
             else
                 ent_coef_tensor_ = torch::tensor(ent_coef_, device_);
             observation_ = ResetEnv();
+        }
+
+        // Factory methods to create optimizers for the actor, critic, and entropy coefficient.
+        // These allow for customization of the optimization process for different components of the SAC algorithm.
+        virtual std::unique_ptr<torch::optim::Optimizer> MakeEntropyOptimizer() const {
+            return std::make_unique<torch::optim::Adam>(std::vector<torch::Tensor>{log_ent_coef_}, torch::optim::AdamOptions(lr_));
+        }
+
+        virtual std::unique_ptr<torch::optim::Optimizer> MakeActorOptimizer() const {
+            return std::make_unique<torch::optim::Adam>(actor_->parameters(), torch::optim::AdamOptions(lr_));
+        }
+
+        virtual std::unique_ptr<torch::optim::Optimizer> MakeCriticOptimizer() const {
+            return std::make_unique<torch::optim::Adam>(critic_->parameters(), torch::optim::AdamOptions(lr_));
         }
 
         virtual void RegisterLogItems() {
@@ -351,18 +371,6 @@ namespace rlop {
                 if (ent_coef_tensor_.defined())
                     archive->write("ent_coef_tensor", ent_coef_tensor_);
             }
-        }
-
-        virtual std::unique_ptr<torch::optim::Optimizer> MakeEntropyOptimizer() const {
-            return std::make_unique<torch::optim::Adam>(std::vector<torch::Tensor>{log_ent_coef_}, torch::optim::AdamOptions(lr_));
-        }
-
-        virtual std::unique_ptr<torch::optim::Optimizer> MakeActorOptimizer() const {
-            return std::make_unique<torch::optim::Adam>(actor_->parameters(), torch::optim::AdamOptions(lr_));
-        }
-
-        virtual std::unique_ptr<torch::optim::Optimizer> MakeCriticOptimizer() const {
-            return std::make_unique<torch::optim::Adam>(critic_->parameters(), torch::optim::AdamOptions(lr_));
         }
         
         const std::unique_ptr<ReplayBuffer>& replay_buffer() const {

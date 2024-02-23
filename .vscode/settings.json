@@ -64,6 +64,7 @@
         "bitset": "cpp",
         "valarray": "cpp",
         "__hash_table": "cpp",
-        "__tree": "cpp"
+        "__tree": "cpp",
+        "iomanip": "cpp"
     }
 }

@@ -4,19 +4,23 @@
 #include "rlop/rl/buffers.h"
 
 namespace rlop {
+    // The DQN class inherits from the RL base class and implements the Deep Q-Network algorithm, a value-based 
+    // method for reinforcement learning that uses deep neural networks to approximate Q-values. This 
+    // implementation references the DQN implementation of Stable Baselines3.
+    // Paper: https://arxiv.org/abs/1312.5602, https://www.nature.com/articles/nature14236
     class DQN : public RL {
     public:
         DQN(
-            Int learning_starts = 100,
-            Int batch_size = 32,
-            double lr = 1e-4,
-            double tau = 1.0,
-            double gamma = 0.99,
-            double eps = 0.1,
-            double max_grad_norm = 10,
-            Int train_freq = 4,
-            Int gradient_steps = 1,
-            Int target_update_interval = 1e4,
+            Int learning_starts = 100, // Number of steps to observe before starting training.
+            Int batch_size = 32, // Size of batches taken from the replay buffer for training.
+            double lr = 1e-4, // Learning rate for the RMSprop optimizer.
+            double tau = 1.0, // Coefficient for soft update of the target network.
+            double gamma = 0.99, // Discount factor for future rewards.
+            double eps = 0.1, // Epsilon value for epsilon-greedy action selection.
+            double max_grad_norm = 10, // Maximum gradient norm for gradient clipping.
+            Int train_freq = 4, // Number of environment steps between each training step.
+            Int gradient_steps = 1, // Number of gradient steps per training step.
+            Int target_update_interval = 1e4, // Number of steps between updates to the target network.
             const std::string& output_path = "",
             const torch::Device& device = torch::kCPU
         ) :
@@ -35,10 +39,10 @@ namespace rlop {
 
         virtual ~DQN() = default;
 
-        // Pure virtual function to create and return a unique pointer to a ReplayBuffer object.
+        // Factory method to create and return a unique pointer to a ReplayBuffer object.
         virtual std::unique_ptr<ReplayBuffer> MakeReplayBuffer() const = 0;
 
-        // Pure virtual function to create and return a unique pointer to a QNet object.
+        // Factory method to create and return a unique pointer to a QNet object.
         virtual std::unique_ptr<QNet> MakeQNet() const = 0;
 
         // Pure virtual function to sample an action from the action space.
@@ -58,6 +62,11 @@ namespace rlop {
             target_q_net_->eval();
             optimizer_ = MakeOptimizer();
             observation_ = ResetEnv();
+        }
+
+        // Factory method to create an optimizer for the Q-network. By default, uses the RMSprop optimizer.
+        virtual std::unique_ptr<torch::optim::Optimizer> MakeOptimizer() const {
+            return std::make_unique<torch::optim::RMSprop>(q_net_.get()->parameters(), torch::optim::RMSpropOptions(lr_));
         }
 
         virtual void RegisterLogItems() override {
@@ -241,11 +250,7 @@ namespace rlop {
                 archive->write("target_update_interval", torch::tensor(target_update_interval_));
             }
         }
-
-        virtual std::unique_ptr<torch::optim::Optimizer> MakeOptimizer() const {
-            return std::make_unique<torch::optim::RMSprop>(q_net_.get()->parameters(), torch::optim::RMSpropOptions(lr_));
-        }
-
+       
         const std::unique_ptr<ReplayBuffer>& replay_buffer() const {
             return replay_buffer_;
         }

@@ -1,6 +1,6 @@
 # Multi-armed Bandit
 
-A multi-armed bandit (MAB) problem is a classic scenario in probability theory and reinforcement learning that models the dilemma of balancing exploration and exploitation. The name "multi-armed bandit" comes from imagining a gambler at a row of slot machines (sometimes referred to as "one-armed bandits"), where each machine provides a different, unknown reward distribution. The gambler seeks to maximize their winnings by deciding which machines to play, how many times to play each machine, and in what order. For more details, please refer to: https://en.wikipedia.org/wiki/Multi-armed_bandit.
+A multi-armed bandit (MAB) is a classic problem in probability theory and reinforcement learning that models the dilemma of balancing exploration and exploitation. The name "multi-armed bandit" comes from imagining a gambler at a row of slot machines (sometimes referred to as "one-armed bandits"), where each machine provides a different, unknown reward distribution. The gambler seeks to maximize their winnings by deciding which machines to play, how many times to play each machine, and in what order. For more details, please refer to: https://en.wikipedia.org/wiki/Multi-armed_bandit.
 
 ## Run
 

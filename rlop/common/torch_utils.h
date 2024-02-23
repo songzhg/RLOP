@@ -3,7 +3,7 @@
 #include "typedef.h"
 
 namespace rlop::torch_utils {
-    // Copies the state dictionary from a source PyTorch model to a target model. This includes both
+    // Copies the state dictionary from a source libtorch model to a target model. This includes both
     // the parameters and buffers (e.g., running mean/variance in batch normalization layers).
     //
     // Parameters:
@@ -31,7 +31,7 @@ namespace rlop::torch_utils {
         }
     }
 
-    // Retrieves the names and tensors of all parameters in a PyTorch model.
+    // Retrieves the names and tensors of all parameters in a libtorch model.
     //
     // Parameters:
     //   model: The model from which to retrieve parameters.
@@ -48,7 +48,7 @@ namespace rlop::torch_utils {
         return { names, parameters };
     }
 
-    // Retrieves the names and tensors of all buffers in a PyTorch model.
+    // Retrieves the names and tensors of all buffers in a libtorch model.
     //
     // Parameters:
     //   model: The model from which to retrieve buffers.
@@ -82,7 +82,7 @@ namespace rlop::torch_utils {
         }
     }
 
-    // Compares two PyTorch models to check if they are identical in terms of parameters and buffers.
+    // Compares two libtorch models to check if they are identical in terms of parameters and buffers.
     //
     // Parameters:
     //   model1: The first model to compare.

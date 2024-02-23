@@ -2,10 +2,8 @@
 #include "utils.h"
 
 namespace rlop {
-    // A template class for a circular (or ring) buffer that offers efficient FIFO (first in, first out) operations.
-    // The circular buffer is implemented using a std::vector, and it supports automatic wrapping when the end of
-    // the buffer is reached. This makes it suitable for fixed-size buffers where old elements are overwritten
-    // by new ones once the capacity is reached.
+    // A template class for a circular buffer that offers efficient FIFO operations, which is suitable for 
+    // fixed-size buffers where old elements are overwritten by new ones once the capacity is reached.
     template <typename T>
     class CircularStack {
     public:

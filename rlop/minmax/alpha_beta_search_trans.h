@@ -46,7 +46,7 @@ namespace rlop {
         // Overrides the AlphaBeta method to integrate transposition table lookups and updates, enhancing the search efficiency 
         // by reusing results of previously evaluated positions. This implementation checks the transposition table before 
         // proceeding with the standard AlphaBeta search logic. There is a discussion on how to combine negamax and transposition 
-        // table: https://en.wikipedia.org/wiki/Talk:Negamax
+        // table correctly: https://en.wikipedia.org/wiki/Talk:Negamax.
         //
         // Parameters:
         //   depth: The depth of the search.

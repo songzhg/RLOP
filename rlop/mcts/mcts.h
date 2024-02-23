@@ -6,8 +6,6 @@
 namespace rlop {
     // Implements the Monte Carlo Tree Search (MCTS) algorithm for decision making in domains
     // with discrete action spaces.
-    // The class is abstract and requires specific implementations of NumChildStates, IsExpanded,
-    // RevertState, Step, and Reward.
     class MCTS : public BaseAlgorithm {
     public:
         struct Node {
@@ -31,7 +29,7 @@ namespace rlop {
         // Pure virtual function to determine whether a node has been fully expanded.
         virtual bool IsExpanded(const Node& node) const = 0;
 
-        // Pure virtual function to revert the environment state to the state at the beginning of the algorithm. 
+        // Pure virtual function to revert the environment state to the state at the beginning of the search. 
         virtual void RevertState() = 0;
 
         // Pure virtual function to advance the environment state based on the selected child index. 
@@ -204,11 +202,11 @@ namespace rlop {
             return { rand_.Uniform(size_t(0), path_.back()->children.size() - 1) };
         }
 
-        // Selects a child node randomly from the current state. This method is used during the simulation phase.
+        // Selects a child state randomly from the current state. This method is used during the simulation phase.
         //
         // Returns:
-        //   std::optional<Int>: The index of the randomly selected child node. If there are no legal child states available
-        //                        from the current state, returns std::nullopt.
+        //   std::optional<Int>: The index of the randomly selected child state. If there is no legal child state available,
+        //                       returns std::nullopt.
         virtual std::optional<Int> SelectRandom() {
             Int num_children = NumChildStates();
             if (num_children <= 0)

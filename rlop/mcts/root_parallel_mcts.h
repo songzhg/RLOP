@@ -32,7 +32,7 @@ namespace rlop {
 
         virtual ~RootParallelMCTS() = default;
 
-        // Pure virtual function to return the total number of child states from the current state for a specified environment .
+        // Pure virtual function to return the total number of child states from the current state for a specified environment.
         virtual Int NumChildStates(Int env_i) const = 0;
 
         // Pure virtual function to determine whether a node has been fully expanded for a specified environment.
@@ -44,7 +44,7 @@ namespace rlop {
         //   bool: Returns true if the node is fully expanded.
         virtual bool IsExpanded(Int env_i, const Node& node) const = 0;
 
-        // Pure virtual function to revert the state of a specified environment to its state at the beginning of the algorithm. 
+        // Pure virtual function to revert the state of a specified environment to its state at the beginning of the search. 
         //
         // Parameters:
         //   env_i: The index of environment.
@@ -257,14 +257,14 @@ namespace rlop {
             return { rands_[env_i].Uniform(size_t(0), paths_[env_i].back()->children.size()-1) };
         }
 
-        // Selects a child node randomly from the current state for a specified environment. This method is used during the 
+        // Selects a child state randomly from the current state for a specified environment. This method is used during the 
         // simulation phase.
         //
         // Parameters:
         //   env_i: The index of environment.
         //
         // Returns:
-        //   std::optional<Int>: The index of the randomly selected child node. If there are no legal child states available from
+        //   std::optional<Int>: The index of the randomly selected child node. If there is no legal child state available from
         //                       the current state, returns std::nullopt.
         virtual std::optional<Int> SelectRandom(Int env_i) {
             Int num_children = NumChildStates(env_i);

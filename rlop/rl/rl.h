@@ -4,16 +4,15 @@
 #include "rlop/common/torch_utils.h"
 
 namespace rlop {
-    // The RL class is as an abstract base class for reinforcement learning algorithms,
-    // providing common interfaces for training, managing environments, and performing evaluations.
-    // It inherits from BaseAlgorithm and integrates closely with PyTorch for neural network operations.
+    // The RL class is as an abstract base class for reinforcement learning algorithms, providing common interfaces
+    // for training, managing environments, and performing evaluations.
     class RL : public BaseAlgorithm {
     public:
-         // Constructs an RL algorithm instance with a specified output path for logging and a computation device.
+        // Constructs an RL algorithm instance with a specified output path for logging and a computation device.
         //
         // Parameters:
         //   output_path: Path where training logs and model checkpoints will be saved.
-        //   device: The PyTorch computation device (e.g., CPU, CUDA GPU).
+        //   device: The libtorch computation device (e.g., CPU, CUDA GPU).
         RL(const std::string& output_path, const torch::Device& device) : 
             output_path_(output_path),
             device_(device)
@@ -41,14 +40,14 @@ namespace rlop {
         // Pure virtual function to collect rollouts from the environment. 
         virtual void CollectRollouts() = 0;
 
-        // Get the policy action from an observation (and optional hidden state). Includes sugar-coating to handle different observations
-        // (e.g. normalizing images).
+        // Get the policy action from an observation (and optional hidden state). Includes sugar-coating to handle 
+        // different observations (e.g. normalizing images).
         //
         // Parameters:
         // observation: the input observation
         //   param state: The last hidden states (can be None, used in recurrent policies)
-        //   episode_start: The last masks (can be None, used in recurrent policies) this correspond to beginning of episodes, where the 
-        //                  hidden states of the RNN must be reset.
+        //   episode_start: The last masks (can be None, used in recurrent policies) this correspond to beginning of
+        //                  episodes, where the hidden states of the RNN must be reset.
         //     
         //   param deterministic: Whether or not to return deterministic actions.
         //
@@ -61,6 +60,7 @@ namespace rlop {
         // Pure virtual function to train the model on collected experience.
         virtual void Train() = 0;
 
+        // Resets the algorithm.
         virtual void Reset() override {
             num_iters_ = 0;
             time_steps_ = 0;
@@ -76,14 +76,17 @@ namespace rlop {
             }
         }
 
+        // Registers loggable items. This function should be overridden to include algorithm-specific metrics.
         virtual void RegisterLogItems() {
             log_items_["num_updates"] = torch::Tensor();
         }
 
+        // Checks if the search should continue.
         virtual bool Proceed() {
             return time_steps_ < max_time_steps_;
         }
         
+        // Main learning loop. Runs the algorithm for a specified number of time steps, monitoring and checkpointing as configured.
         virtual void Learn(Int max_time_steps, Int monitor_interval = 0, Int checkpoint_interval = 0) {
             time_steps_ = 0;
             max_time_steps_ = max_time_steps;
@@ -98,6 +101,7 @@ namespace rlop {
             }
         }
 
+        // Monitors the learning progress and logs metrics at specified intervals.
         virtual void Monitor() {
             if (monitor_interval_ <= 0 || num_iters_ % monitor_interval_ != 0)
                 return;
@@ -106,6 +110,7 @@ namespace rlop {
                 SaveLog(output_path_ + "_log.txt");
         }
 
+        // Saves a checkpoint of the model at specified intervals.
         virtual void Checkpoint() {
             if (checkpoint_interval_ <= 0 || num_iters_ % checkpoint_interval_ != 0)
                 return; 
@@ -117,6 +122,7 @@ namespace rlop {
             ++num_iters_;
         }
 
+        // Prints the current loggable metrics to the console.
         virtual void PrintLog() const {
             std::cout << std::fixed << std::setw(12) << "time_steps";
             for (const auto& pair : log_items_) {
@@ -140,6 +146,7 @@ namespace rlop {
             std::cout << std::endl;
         }
 
+        // Saves the current loggable metrics to a file.
         virtual void SaveLog(const std::string& path) {
             if (path.empty())
                 return;
@@ -160,20 +167,24 @@ namespace rlop {
             out << std::endl;
         }
 
+        // Loads model and algorithm state from a file.
         virtual void Load(const std::string& path, const std::unordered_set<std::string>& names = {"all"}) {
             torch::serialize::InputArchive archive;
             archive.load_from(path);
             LoadArchive(&archive, names); 
         }
         
+        // Saves model and algorithm state to a file.
         virtual void Save(const std::string& path, const std::unordered_set<std::string>& names = {"all"}) {
             torch::serialize::OutputArchive archive;
             SaveArchive(&archive, names);
             archive.save_to(path);
         }
 
+        // Load algorithm-specific components from an archive. To be implemented by derived classes.
         virtual void LoadArchive(torch::serialize::InputArchive* archive, const std::unordered_set<std::string>& names) {}
 
+        // Save algorithm-specific components to an archive. To be implemented by derived classes.
         virtual void SaveArchive(torch::serialize::OutputArchive* archive, const std::unordered_set<std::string>& names) {}
 
     protected:
