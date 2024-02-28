@@ -51,9 +51,14 @@ namespace rlop::gym_utils {
             return torch::kUInt8;
         else if (dtype.is(py::dtype::of<bool>()))
             return torch::kBool;
-        else
+        else 
             throw std::runtime_error("Unsupported data type");
     }
+
+    //  std::string dtype_name = py::str(dtype.attr("name"));
+    //         std::cout << dtype_name <<std::endl;
+    //         if (dtype.is(py::dtype::of<float>())) 
+    //             std::cout << "ss" <<std::endl;
 
     // Converts a libtorch Dtype to the corresponding Python dtype.
     //

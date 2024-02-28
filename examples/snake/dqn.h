@@ -8,23 +8,23 @@ namespace snake {
     class DQN : public rlop::DQN {
     public:
         DQN(
-            Int num_envs = 1,
-            bool render = false,
-            Int replay_buffer_capacity = 1e5,
-            Int learning_starts = 1e3,
-            Int batch_size = 32,
-            double lr = 1e-4,
-            double tau = 1.0,
-            double gamma = 0.99,
-            double max_grad_norm = 10,
-            double exploration_fraction = 0.1,
-            double initial_eps = 1.0,
-            double final_eps = 0.05,
-            Int train_freq = 1,
-            Int gradient_steps = 1,
-            Int target_update_interval = 1e4,
-            std::string output_path = "./dqn",
-            const torch::Device& device = torch::kCUDA
+            Int num_envs,
+            bool render,
+            Int replay_buffer_capacity,
+            Int learning_starts,
+            Int batch_size,
+            double lr,
+            double tau,
+            double gamma,
+            double max_grad_norm,
+            double exploration_fraction,
+            double initial_eps,
+            double final_eps,
+            Int train_freq,
+            Int gradient_steps,
+            Int target_update_interval,
+            std::string output_path,
+            const torch::Device& device
         ) :
             rlop::DQN(
                 learning_starts,
@@ -98,11 +98,12 @@ namespace snake {
             return torch::stack(observation_list);
         }
 
-        std::array<torch::Tensor, 3> Step(const torch::Tensor& action) override {
+        std::array<torch::Tensor, 5> Step(const torch::Tensor& action) override {
             std::vector<torch::Tensor> observation_list(problem_.num_problems());
             std::vector<torch::Tensor> reward_list(problem_.num_problems());
-            std::vector<torch::Tensor> done_list(problem_.num_problems());
+            std::vector<torch::Tensor> terminated_list(problem_.num_problems());
             std::vector<torch::Tensor> score_list(problem_.num_problems());
+            std::vector<torch::Tensor> terminal_obseravtion_list(problem_.num_problems());
             #pragma omp parallel for
             for (Int i=0; i<problem_.num_problems(); ++i) {
                 Int num_foods = problem_.engines()[i].snakes()[0].num_foods;
@@ -113,25 +114,29 @@ namespace snake {
                     else
                         reward = 0;
                     reward_list[i] = torch::tensor(reward, torch::kFloat32);
-                    done_list[i] = torch::tensor(1, torch::kFloat32);
+                    terminated_list[i] = torch::tensor(1, torch::kFloat32);
+                    terminal_obseravtion_list[i] = problem_.GetObservation(i);
                     problem_.Reset(i);
                 }
                 else {
                     double reward = problem_.engines()[i].snakes()[0].num_foods - num_foods + 0.001;
                     reward_list[i] = torch::tensor(reward, torch::kFloat32);
-                    done_list[i] = torch::tensor(0, torch::kFloat32);
+                    terminated_list[i] = torch::tensor(0, torch::kFloat32);
+                    terminal_obseravtion_list[i] = torch::zeros_like(problem_.GetObservation(i));
                 }
                 observation_list[i] = problem_.GetObservation(i);
                 score_list[i] = torch::tensor(problem_.engines()[i].snakes()[0].num_foods, torch::kFloat32);
             }
             torch::Tensor next_observation = torch::stack(observation_list);
             torch::Tensor reward = torch::stack(reward_list);
-            torch::Tensor done = torch::stack(done_list);
+            torch::Tensor terminated = torch::stack(terminated_list);
+            torch::Tensor truncated = torch::zeros_like(terminated);
+            torch::Tensor terminal_observation = torch::stack(terminal_obseravtion_list);
             score_stack_.PushBack(torch::stack(score_list));
             if (score_stack_.full())
                 log_items_["score"] = torch::stack(score_stack_.vec()).mean();
             problem_.Render();
-            return { next_observation, reward, done };
+            return { next_observation, reward, terminated, truncated, terminal_observation };
         }
 
         void Update() override {

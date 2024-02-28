@@ -66,6 +66,11 @@
         "__hash_table": "cpp",
         "__tree": "cpp",
         "iomanip": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "chrono": "cpp",
+        "cstring": "cpp",
+        "ratio": "cpp",
+        "iostream": "cpp",
+        "__nullptr": "cpp"
     }
 }

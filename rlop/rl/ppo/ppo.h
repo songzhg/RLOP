@@ -56,8 +56,8 @@ namespace rlop {
             policy_ = MakePPOPolicy();
             policy_->to(device_);
             optimizer_ = MakeOptimizer();
-            observation_ = ResetEnv();
-            episode_start_ = torch::ones({ rollout_buffer_->num_envs() }, torch::kBool);
+            last_observation_ = ResetEnv();
+            last_episode_start_ = torch::ones({ rollout_buffer_->num_envs() }, torch::kBool);
         }
 
         // Factory method to create an optimizer object for the policy network. By default, uses the Adam optimizer.
@@ -82,15 +82,24 @@ namespace rlop {
             torch::NoGradGuard no_grad;
             rollout_buffer_->Reset();
             while (!rollout_buffer_->full()) {
-                auto [ action, value, log_prob ] = policy_->Forward(observation_.to(device_));
-                auto [ next_observation, reward, done ] = Step(action);
-                rollout_buffer_->Add(observation_, action, value, log_prob, reward, episode_start_);
-                observation_ = next_observation;
-                episode_start_ = done;
+                auto [ action, value, log_prob ] = policy_->Forward(last_observation_.to(device_));
+                auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
+                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
+                if (terminal_observation.defined()) {
+                    for (Int i=0; i<rollout_buffer_->num_envs(); ++i) {
+                        if (done[i].item<bool>() && !truncated[i].item<bool>()) {
+                            torch::Tensor terminal_value = policy_->PredictValue(terminal_observation[i].unsqueeze(0).to(device_));
+                            reward[i] += gamma_ * terminal_value.squeeze(0).to(reward.device());
+                        }
+                    }
+                }
+                rollout_buffer_->Add(last_observation_, action, value, log_prob, reward, last_episode_start_);
+                last_observation_ = next_observation;
+                last_episode_start_ = done;
                 time_steps_ += NumEnvs();
             }
-            torch::Tensor value = policy_->PredictValue(observation_.to(device_));
-            rollout_buffer_->UpdateGAE(value, episode_start_, gamma_, gae_lambda_);
+            torch::Tensor value = policy_->PredictValue(last_observation_.to(device_));
+            rollout_buffer_->UpdateGAE(value, last_episode_start_, gamma_, gae_lambda_);
         }
 
         virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) {
@@ -302,7 +311,7 @@ namespace rlop {
         std::unique_ptr<RolloutBuffer> rollout_buffer_ = nullptr;
         std::unique_ptr<PPOPolicy> policy_ = nullptr;
         std::unique_ptr<torch::optim::Optimizer> optimizer_ = nullptr;
-        torch::Tensor observation_;
-        torch::Tensor episode_start_;
+        torch::Tensor last_observation_;
+        torch::Tensor last_episode_start_;
     };
 }

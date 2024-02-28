@@ -1,5 +1,7 @@
 def csv_to_line_chart(path, single_chart = False, delimiter='\t'):
     import pandas as pd
+    # import matplotlib
+    # matplotlib.use('TkAgg')
     import matplotlib.pyplot as plt
 
     data = pd.read_csv(path, delimiter=delimiter)
@@ -57,3 +59,5 @@ def tensorboard_to_csv(path):
                 value = scalars_data[tag][i].value if i < len(scalars_data[tag]) else None
                 row.append(value)
             writer.writerow(row)
+
+csv_to_line_chart("dqn_log.txt")

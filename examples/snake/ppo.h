@@ -8,23 +8,23 @@ namespace snake {
     class PPO : public rlop::PPO {
     public:
         PPO(
-            Int num_envs = 1,
-            bool render = false,
-            Int num_steps = 2048,
-            Int batch_size = 64,
-            Int num_epochs = 4,
-            double lr = 1e-4,
-            double gamma = 0.99,
-            double clip_range = 0.2,
-            double clip_range_vf = 0,
-            bool normalize_advantage = true,
-            double ent_coef = 0.01,
-            double vf_coef = 0.1,
-            double gae_lambda = 0.95,
-            double max_grad_norm = 10,
-            double target_kl = 0.1,
-            std::string output_path = "./ppo",
-            torch::Device device = torch::kCUDA
+            Int num_envs,
+            bool render,
+            Int num_steps,
+            Int batch_size,
+            Int num_epochs,
+            double lr,
+            double gamma,
+            double clip_range,
+            double clip_range_vf,
+            bool normalize_advantage,
+            double ent_coef,
+            double vf_coef,
+            double gae_lambda,
+            double max_grad_norm,
+            double target_kl,
+            std::string output_path,
+            torch::Device device
         ) :
             rlop::PPO(
                 batch_size,
@@ -92,12 +92,13 @@ namespace snake {
             return torch::stack(observation_list);
         }
 
-        std::array<torch::Tensor, 3> Step(const torch::Tensor& action) override {
+        std::array<torch::Tensor, 5> Step(const torch::Tensor& action) override {
             std::vector<torch::Tensor> observation_list(problem_.num_problems());
             std::vector<torch::Tensor> reward_list(problem_.num_problems());
-            std::vector<torch::Tensor> done_list(problem_.num_problems());
+            std::vector<torch::Tensor> terminated_list(problem_.num_problems());
             std::vector<torch::Tensor> score_list(problem_.num_problems());
-            #pragma omp parallel for
+            std::vector<torch::Tensor> terminal_obseravtion_list(problem_.num_problems());
+            // #pragma omp parallel for
             for (Int i=0; i<problem_.num_problems(); ++i) {
                 Int num_foods = problem_.engines()[i].snakes()[0].num_foods;
                 if (!problem_.Step(i, { problem_.GetAction(action[i].item<Int>()) })) {
@@ -107,25 +108,29 @@ namespace snake {
                     else
                         reward = 0;
                     reward_list[i] = torch::tensor(reward, torch::kFloat32);
-                    done_list[i] = torch::tensor(1, torch::kFloat32);
+                    terminated_list[i] = torch::tensor(1, torch::kFloat32);
+                    terminal_obseravtion_list[i] = problem_.GetObservation(i);
                     problem_.Reset(i);
                 }
                 else {
                     double reward = problem_.engines()[i].snakes()[0].num_foods - num_foods + 0.001;
                     reward_list[i] = torch::tensor(reward, torch::kFloat32);
-                    done_list[i] = torch::tensor(0, torch::kFloat32);
+                    terminated_list[i] = torch::tensor(0, torch::kFloat32);
+                    terminal_obseravtion_list[i] = torch::zeros_like(problem_.GetObservation(i));
                 }
                 observation_list[i] = problem_.GetObservation(i);
                 score_list[i] = torch::tensor(problem_.engines()[i].snakes()[0].num_foods, torch::kFloat32);
             }
             torch::Tensor next_observation = torch::stack(observation_list);
             torch::Tensor reward = torch::stack(reward_list);
-            torch::Tensor done = torch::stack(done_list);
+            torch::Tensor terminated = torch::stack(terminated_list);
+            torch::Tensor truncated = torch::zeros_like(terminated);
+            torch::Tensor terminal_observation = torch::stack(terminal_obseravtion_list);
             score_stack_.PushBack(torch::stack(score_list));
             if (score_stack_.full())
                 log_items_["score"] = torch::stack(score_stack_.vec()).mean();
             problem_.Render();
-            return { next_observation, reward, done };
+            return { next_observation, reward, terminated, truncated, terminal_observation };
         }
 
     protected:

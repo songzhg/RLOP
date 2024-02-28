@@ -61,7 +61,7 @@ namespace rlop {
             torch_utils::CopyStateDict(*q_net_, target_q_net_.get());
             target_q_net_->eval();
             optimizer_ = MakeOptimizer();
-            observation_ = ResetEnv();
+            last_observation_ = ResetEnv();
         }
 
         // Factory method to create an optimizer for the Q-network. By default, uses the RMSprop optimizer.
@@ -77,15 +77,33 @@ namespace rlop {
             log_items_["eps"] = torch::Tensor();
         }
 
+        virtual void StoreTransition(
+            const torch::Tensor& action, 
+            const torch::Tensor& next_observation, 
+            const torch::Tensor& reward, 
+            const torch::Tensor& done,
+            const torch::Tensor& terminal_observation
+        ) {
+            torch::Tensor new_observation = next_observation;
+            if (terminal_observation.defined()) {
+                for (Int i=0; i<replay_buffer_->num_envs(); ++i) {
+                    if (done[i].item<bool>() && !torch::isnan(terminal_observation[i]).any().item<bool>()) 
+                        new_observation[i] = terminal_observation[i];
+                }
+            }
+            replay_buffer_->Add(last_observation_, action, new_observation, reward, done); 
+        }
+
         virtual void CollectRollouts() override {
             q_net_->eval();
             torch::NoGradGuard no_grad;
             if (num_iters_ == 0) {
                 for (Int step = 0; step < learning_starts_; ++step) {
                     torch::Tensor action = SampleAction();
-                    auto [next_observation, reward, done] = Step(action);
-                    replay_buffer_->Add(observation_, action, next_observation, reward, done);
-                    observation_ = next_observation;
+                    auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
+                    torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
+                    StoreTransition(action, next_observation, reward, done, terminal_observation);
+                    last_observation_ = next_observation;
                 }
             }
             for (Int step = 0; step < train_freq_; ++step) {
@@ -93,10 +111,11 @@ namespace rlop {
                 if (torch::rand({1}, torch::kFloat64).item<double>() < eps_)
                     action = SampleAction();
                 else 
-                    action = q_net_->PredictAction(observation_.to(device_));
-                auto [next_observation, reward, done] = Step(action);
-                replay_buffer_->Add(observation_, action, next_observation, reward, done);
-                observation_ = next_observation;
+                    action = q_net_->PredictAction(last_observation_.to(device_));
+                auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
+                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
+                StoreTransition(action, next_observation, reward, done, terminal_observation);
+                last_observation_ = next_observation;
                 time_steps_ += NumEnvs();
             }
         }
@@ -282,6 +301,6 @@ namespace rlop {
         std::unique_ptr<QNet> q_net_ = nullptr;
         std::unique_ptr<QNet> target_q_net_ = nullptr;
         std::unique_ptr<torch::optim::Optimizer> optimizer_ = nullptr;
-        torch::Tensor observation_;
+        torch::Tensor last_observation_;
     };
 }

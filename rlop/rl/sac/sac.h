@@ -88,7 +88,7 @@ namespace rlop {
             }
             else
                 ent_coef_tensor_ = torch::tensor(ent_coef_, device_);
-            observation_ = ResetEnv();
+            last_observation_ = ResetEnv();
         }
 
         // Factory methods to create optimizers for the actor, critic, and entropy coefficient.
@@ -115,6 +115,23 @@ namespace rlop {
                 log_items_["ent_coef_loss"] = torch::Tensor();
         }
 
+        virtual void StoreTransition(
+            const torch::Tensor& action, 
+            const torch::Tensor& next_observation, 
+            const torch::Tensor& reward, 
+            const torch::Tensor& done,
+            const torch::Tensor& terminal_observation
+        ) {
+            torch::Tensor new_observation = next_observation;
+            if (terminal_observation.defined()) {
+                for (Int i=0; i<replay_buffer_->num_envs(); ++i) {
+                    if (done[i].item<bool>() && !torch::isnan(terminal_observation[i]).any().item<bool>()) 
+                        new_observation[i] = terminal_observation[i];
+                }
+            }
+            replay_buffer_->Add(last_observation_, action, new_observation, reward, done); 
+        }
+
         virtual void CollectRollouts() override {
             actor_->eval();
             critic_->eval();
@@ -122,16 +139,18 @@ namespace rlop {
             if (num_iters_ == 0) {
                 for (Int step = 0; step < learning_starts_; ++step) {
                     torch::Tensor action = SampleAction();
-                    auto [next_observation, reward, done] = Step(action);
-                    replay_buffer_->Add(observation_, action, next_observation, reward, done);
-                    observation_ = next_observation;
+                    auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
+                    torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
+                    StoreTransition(action, next_observation, reward, done, terminal_observation);
+                    last_observation_ = next_observation;
                 }
             }
             for (Int step = 0; step < train_freq_; ++step) {
-                torch::Tensor action = actor_->PredictAction(observation_.to(device_));
-                auto [next_observation, reward, done] = Step(action);
-                replay_buffer_->Add(observation_, action, next_observation, reward, done);
-                observation_ = next_observation;
+                torch::Tensor action = actor_->PredictAction(last_observation_.to(device_));
+                auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
+                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
+                StoreTransition(action, next_observation, reward, done, terminal_observation);
+                last_observation_ = next_observation;
                 time_steps_ += NumEnvs();
             }
         }
@@ -418,6 +437,6 @@ namespace rlop {
         std::unique_ptr<torch::optim::Optimizer> ent_coef_optimizer_ = nullptr;
         torch::Tensor log_ent_coef_;
         torch::Tensor ent_coef_tensor_;
-        torch::Tensor observation_;
+        torch::Tensor last_observation_;
     };
 }

@@ -13,7 +13,7 @@ namespace rlop {
         // Parameters:
         //   output_path: Path where training logs and model checkpoints will be saved.
         //   device: The libtorch computation device (e.g., CPU, CUDA GPU).
-        RL(const std::string& output_path, const torch::Device& device) : 
+        RL(const std::string& output_path, const torch::Device& device) :
             output_path_(output_path),
             device_(device)
         {}
@@ -31,11 +31,14 @@ namespace rlop {
         // Parameters:
         //   action: action to take.
         //
-        //   std::array<torch::Tensor, 3>: A tuple containing three elements:
+        //   std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, Info>: A tuple containing four elements:
         //     - [0]: Observation (torch::Tensor) - The next observation from the environment after taking the action.
         //     - [1]: Reward (torch::Tensor) - The reward obtained after taking the action.
-        //     - [2]: Done (torch::Tensor) - A boolean flag indicating whether the episode has ended.
-        virtual std::array<torch::Tensor, 3> Step(const torch::Tensor& action) = 0;
+        //     - [2]: Terminated (torch::Tensor) - A boolean flag indicating whether agent reaches the terminal state.
+        //     - [3]: Truncated (torch::Tensor) - A boolean flag indicating whether the truncation condition outside the
+        //            scope of the MDP is satisfied.
+        //     - [4]: Terminal observation (torch::Tensor) - The last observation of an episode.
+        virtual std::array<torch::Tensor, 5> Step(const torch::Tensor& action) = 0;
 
         // Pure virtual function to collect rollouts from the environment. 
         virtual void CollectRollouts() = 0;

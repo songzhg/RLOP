@@ -42,7 +42,8 @@ namespace rlop {
                 if (targets_met)
                     break;
                 auto [action, next_state] = rl->Predict(observation, deterministic, state, episode_start);
-                auto [next_observation, reward, done] = rl->Step(action);
+                auto [next_observation, reward, terminated, truncated, terminal_observation] = rl->Step(action);
+                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::kFloat32);
                 current_rewards += reward;
                 std::for_each(current_lengths.begin(), current_lengths.end(), [](Int& item) { item += 1; });
                 for (Int i = 0; i < num_envs; ++i) {

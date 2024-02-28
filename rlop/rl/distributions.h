@@ -6,7 +6,7 @@ namespace rlop {
     public:
         virtual torch::Tensor Sample(const c10::ArrayRef<Int>& size) const = 0;
 
-        virtual torch::Tensor LogProb(const torch::Tensor& value) const = 0;
+        virtual torch::Tensor LogProb(const torch::Tensor& x) const = 0;
 
         virtual torch::Tensor Entropy() const = 0;
     };
@@ -20,9 +20,9 @@ namespace rlop {
             return standard * log_std_.exp() + mean_;
         }
 
-        virtual torch::Tensor LogProb(const torch::Tensor& value) const override {
+        virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
             auto log_scale = log_std_ + std::log(std::sqrt(2 * M_PI));
-            return -0.5 * torch::pow((value - mean_) / log_std_.exp(), 2) - log_scale;
+            return -0.5 * torch::pow((x - mean_) / log_std_.exp(), 2) - log_scale;
         }
 
         virtual torch::Tensor Entropy() const override {
@@ -42,13 +42,13 @@ namespace rlop {
             return torch::tanh(DiagGaussian::Sample(size));
         }
 
-        virtual torch::Tensor LogProb(const torch::Tensor& value) const override {
-            torch::Tensor gaussian_value = torch_utils::Atanh(value);
-            return DiagGaussian::LogProb(gaussian_value) - torch::sum(torch::log(1 - value.pow(2) + eps_), 1, true);
+        virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
+            torch::Tensor gaussian_x = torch_utils::TanhBijector::Inverse(x);
+            return DiagGaussian::LogProb(gaussian_x) - torch::sum(torch::log1p(-x.pow(2) + eps_), 1, true);
         }
 
-        virtual torch::Tensor LogProb(const torch::Tensor& value, const torch::Tensor& gaussian_value) const {
-            return DiagGaussian::LogProb(gaussian_value) - torch::sum(torch::log(1 - value.pow(2) + eps_), 1, true);
+        virtual torch::Tensor LogProb(const torch::Tensor& x, const torch::Tensor& gaussian_x) const {
+            return DiagGaussian::LogProb(gaussian_x) - torch::sum(torch::log1p(-x.pow(2) + eps_), 1, true);
         }
 
         virtual torch::Tensor Entropy() const override {
