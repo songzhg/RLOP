@@ -86,17 +86,10 @@ namespace continuous_lunar_lander {
             torch::Tensor terminal_observation = torch::zeros_like(next_observation);
             if (info.contains("final_observation")) {
                 Int i=0;
-                auto final_observation = py::cast<py::list>(info["final_observation"]);
+                auto final_observation = info["final_observation"];
                 for (const auto& obs : final_observation) {
-                    if (!obs.is_none()) {
-                        auto obs_list = py::cast<py::list>(obs);
-                        std::vector<float> values;
-                        values.reserve(py::len(obs_list));
-                        for (const auto val : obs_list) {
-                            values.push_back(py::cast<float>(val));
-                        }
-                        terminal_observation[i] = torch::tensor(values);
-                    }
+                    if (!obs.is_none()) 
+                        terminal_observation[i] = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(obs));
                     ++i;
                 }
             }

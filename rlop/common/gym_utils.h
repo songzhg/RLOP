@@ -35,21 +35,21 @@ namespace rlop::gym_utils {
     // Throws:
     //   std::runtime_error if the numpy data type is unsupported.
     inline torch::Dtype ArrayDtypeToTensorDtype(const py::dtype& dtype) {
-        if (dtype.is(py::dtype::of<float>())) 
+        if (dtype.equal(py::dtype::of<float>())) 
             return torch::kFloat32;
-        else if (dtype.is(py::dtype::of<double>()))
+        else if (dtype.equal(py::dtype::of<double>()))
             return torch::kFloat64;
-        else if (dtype.is(py::dtype::of<int32_t>()))
+        else if (dtype.equal(py::dtype::of<int32_t>()))
             return torch::kInt32;
-        else if (dtype.is(py::dtype::of<int64_t>()))
+        else if (dtype.equal(py::dtype::of<int64_t>()))
             return torch::kInt64;
-        else if (dtype.is(py::dtype::of<int16_t>()))
+        else if (dtype.equal(py::dtype::of<int16_t>()))
             return torch::kInt16;
-        else if (dtype.is(py::dtype::of<int8_t>()))
+        else if (dtype.equal(py::dtype::of<int8_t>()))
             return torch::kInt8;
-        else if (dtype.is(py::dtype::of<uint8_t>()))
+        else if (dtype.equal(py::dtype::of<uint8_t>()))
             return torch::kUInt8;
-        else if (dtype.is(py::dtype::of<bool>()))
+        else if (dtype.equal(py::dtype::of<bool>()))
             return torch::kBool;
         else 
             throw std::runtime_error("Unsupported data type");

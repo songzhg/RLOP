@@ -59,5 +59,3 @@ def tensorboard_to_csv(path):
                 value = scalars_data[tag][i].value if i < len(scalars_data[tag]) else None
                 row.append(value)
             writer.writerow(row)
-
-csv_to_line_chart("dqn_log.txt")

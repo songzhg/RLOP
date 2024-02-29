@@ -25,12 +25,12 @@ namespace continuous_lunar_lander {
         }
 
         void Reset() override {
-            for (auto& module : children()) {
-                if (auto linear = dynamic_cast<torch::nn::LinearImpl*>(module.get())) {
-                    torch::nn::init::xavier_uniform_(linear->weight);
-                    torch::nn::init::constant_(linear->bias, 0);
-                }
-            }
+            // for (auto& module : children()) {
+            //     if (auto linear = dynamic_cast<torch::nn::LinearImpl*>(module.get())) {
+            //         torch::nn::init::xavier_uniform_(linear->weight);
+            //         torch::nn::init::constant_(linear->bias, 0);
+            //     }
+            // }
         }
 
         std::array<torch::Tensor, 2> PredictDist(const torch::Tensor& observation) {
@@ -81,12 +81,12 @@ namespace continuous_lunar_lander {
         }
 
         void Reset() override {
-            for (auto& module : children()) {
-                if (auto linear = dynamic_cast<torch::nn::LinearImpl*>(module.get())) {
-                    torch::nn::init::xavier_uniform_(linear->weight);
-                    torch::nn::init::constant_(linear->bias, 0);
-                }
-            }
+            // for (auto& module : children()) {
+            //     if (auto linear = dynamic_cast<torch::nn::LinearImpl*>(module.get())) {
+            //         torch::nn::init::xavier_uniform_(linear->weight);
+            //         torch::nn::init::constant_(linear->bias, 0);
+            //     }
+            // }
         }
 
         std::vector<torch::Tensor> Forward(const torch::Tensor& observation, const torch::Tensor& action) override {

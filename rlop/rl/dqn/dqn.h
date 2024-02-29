@@ -87,7 +87,7 @@ namespace rlop {
             torch::Tensor new_observation = next_observation;
             if (terminal_observation.defined()) {
                 for (Int i=0; i<replay_buffer_->num_envs(); ++i) {
-                    if (done[i].item<bool>() && !torch::isnan(terminal_observation[i]).any().item<bool>()) 
+                    if (done[i].item<bool>()) 
                         new_observation[i] = terminal_observation[i];
                 }
             }
