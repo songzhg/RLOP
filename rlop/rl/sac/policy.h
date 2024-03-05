@@ -7,6 +7,9 @@ namespace rlop {
     // to maximize the expected return while also maximizing entropy to encourage exploration.
     class SACActor : public RLPolicy {
     public:
+        constexpr static double kLogStdMax = 2.0;
+        constexpr static double kLogStdMin = -20.0;
+
         SACActor() = default;
 
         virtual ~SACActor() = default;
@@ -20,7 +23,7 @@ namespace rlop {
         //   std::array<torch::Tensor, 2>: A tuple containing the predicted action and its log probability.
         //     - [0]: The predicted action as a torch::Tensor.
         //     - [1]: The log probability of the predicted action as a torch::Tensor.
-        virtual std::array<torch::Tensor, 2> PredictActionLogProb(const torch::Tensor& observation) = 0;
+        virtual std::array<torch::Tensor, 2> PredictLogProb(const torch::Tensor& observation) = 0;
     };
 
     // SACCritic is an abstract class that defines the interface for the critic component of the Soft Actor-Critic algorithm.

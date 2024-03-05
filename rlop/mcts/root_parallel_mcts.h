@@ -74,8 +74,7 @@ namespace rlop {
             }
         }
 
-        virtual void Reset(const std::vector<uint64_t>& seeds) {
-            Reset();
+        virtual void SetSeeds(const std::vector<uint64_t>& seeds) {
             if (seeds.empty())
                 return;
             for (Int i=0; i<rands_.size(); ++i) {

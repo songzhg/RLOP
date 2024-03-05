@@ -23,22 +23,26 @@ namespace rlop {
         // Pure virtual function to return the number of environments being managed by this RL instance.
         virtual Int NumEnvs() const = 0;
 
-        // Pure virtual function to reset the environment to its initial state. 
+        // Pure virtual function to reset the environment to its initial state.
+        //
+        // Returns:
+        //   Observations: The initial observations of an episode. 
         virtual torch::Tensor ResetEnv() = 0;
 
         // Pure virtual function to perform a step in the environment using the provided actions.
         //
         // Parameters:
-        //   action: action to take.
+        //   actions: Actions to take.
         //
-        //   std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, Info>: A tuple containing four elements:
-        //     - [0]: Observation (torch::Tensor) - The next observation from the environment after taking the action.
-        //     - [1]: Reward (torch::Tensor) - The reward obtained after taking the action.
-        //     - [2]: Terminated (torch::Tensor) - A boolean flag indicating whether agent reaches the terminal state.
-        //     - [3]: Truncated (torch::Tensor) - A boolean flag indicating whether the truncation condition outside the
-        //            scope of the MDP is satisfied.
-        //     - [4]: Terminal observation (torch::Tensor) - The last observation of an episode.
-        virtual std::array<torch::Tensor, 5> Step(const torch::Tensor& action) = 0;
+        // Returns:
+        //   std::array<torch::Tensor, 5>: A tuple containing four elements:
+        //     - [0]: Observations - The next observations from the environment after taking the actions.
+        //     - [1]: Rewards - The rewards obtained after taking the actions.
+        //     - [2]: Terminations - A boolean flag indicating whether agent reaches the terminal state.
+        //     - [3]: Truncations - A boolean flag indicating whether the truncation condition outside the scope of
+        //            the MDP is satisfied.
+        //     - [4]: Final observations - The last observations of an episode.
+        virtual std::array<torch::Tensor, 5> Step(const torch::Tensor& actions) = 0;
 
         // Pure virtual function to collect rollouts from the environment. 
         virtual void CollectRollouts() = 0;
@@ -55,9 +59,9 @@ namespace rlop {
         //   param deterministic: Whether or not to return deterministic actions.
         //
         // Returns: 
-        //   std::array<torch::Tensor, 3>: An array containing:
-        //     - [0]: The model's action recommended by the policy for the given observation.
-        //     - [1]: The next hidden state (used in recurrent policies)
+        //   std::array<torch::Tensor, 2>: An array containing:
+        //     - [0]: Action - The model's actions recommended by the policy for the given observation.
+        //     - [1]: State - The next hidden state (used in recurrent policies)
         virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) = 0;
 
         // Pure virtual function to train the model on collected experience.

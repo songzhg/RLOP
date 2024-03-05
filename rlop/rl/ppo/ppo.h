@@ -55,9 +55,10 @@ namespace rlop {
             rollout_buffer_ = MakeRolloutBuffer();
             policy_ = MakePPOPolicy();
             policy_->to(device_);
+            policy_->Reset();
             optimizer_ = MakeOptimizer();
-            last_observation_ = ResetEnv();
-            last_episode_start_ = torch::ones({ rollout_buffer_->num_envs() }, torch::kBool);
+            last_observations_ = ResetEnv();
+            last_episode_starts_ = torch::ones({ rollout_buffer_->num_envs() }, torch::kBool);
         }
 
         // Factory method to create an optimizer object for the policy network. By default, uses the Adam optimizer.
@@ -82,24 +83,24 @@ namespace rlop {
             torch::NoGradGuard no_grad;
             rollout_buffer_->Reset();
             while (!rollout_buffer_->full()) {
-                auto [ action, value, log_prob ] = policy_->Forward(last_observation_.to(device_));
-                auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
-                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
-                if (terminal_observation.defined()) {
+                auto [ actions, values, log_probs ] = policy_->Forward(last_observations_.to(device_));
+                auto [next_observations, rewards, terminations, truncations, terminal_observations] = Step(actions);
+                torch::Tensor dones = torch::logical_or(terminations, truncations).to(torch::get_default_dtype());
+                if (terminal_observations.defined()) {
                     for (Int i=0; i<rollout_buffer_->num_envs(); ++i) {
-                        if (done[i].item<bool>() && !truncated[i].item<bool>()) {
-                            torch::Tensor terminal_value = policy_->PredictValue(terminal_observation[i].unsqueeze(0).to(device_));
-                            reward[i] += gamma_ * terminal_value.squeeze(0).to(reward.device());
+                        if (dones[i].item<bool>() && !truncations[i].item<bool>()) {
+                            torch::Tensor terminal_values = policy_->PredictValues(terminal_observations[i].to(device_))[0];
+                            rewards[i] += gamma_ * terminal_values.to(rewards.device());
                         }
                     }
                 }
-                rollout_buffer_->Add(last_observation_, action, value, log_prob, reward, last_episode_start_);
-                last_observation_ = next_observation;
-                last_episode_start_ = done;
+                rollout_buffer_->Add(last_observations_, actions, values, log_probs, rewards, last_episode_starts_);
+                last_observations_ = next_observations;
+                last_episode_starts_ = dones;
                 time_steps_ += NumEnvs();
             }
-            torch::Tensor value = policy_->PredictValue(last_observation_.to(device_));
-            rollout_buffer_->UpdateGAE(value, last_episode_start_, gamma_, gae_lambda_);
+            torch::Tensor values = policy_->PredictValues(last_observations_.to(device_));
+            rollout_buffer_->UpdateGAE(values, last_episode_starts_, gamma_, gae_lambda_);
         }
 
         virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) {
@@ -125,30 +126,30 @@ namespace rlop {
             policy_->train();
             for (Int epoch=0; epoch<num_epochs_; ++epoch) {
                 for (Int step =0; step<=num_steps; ++step) {
-                    auto batch = rollout_buffer_->Get(batch_size_).to(device_);
-                    auto [ value, log_prob, entropy ] = policy_->EvaluateAction(batch.observation, batch.action);
-                    if (normalize_advantage_ && batch.advantage.sizes()[0] > 1)
-                        batch.advantage = (batch.advantage - batch.advantage.mean()) / (batch.advantage.std() + 1e-8);
+                    auto batch = rollout_buffer_->Get(batch_size_).To(device_);
+                    auto [ values, log_prob, entropy ] = policy_->EvaluateActions(batch.observations, batch.actions);
+                    if (normalize_advantage_ && batch.advantages.sizes()[0] > 1)
+                        batch.advantages = (batch.advantages - batch.advantages.mean()) / (batch.advantages.std() + 1e-8);
                     torch::Tensor ratio = torch::exp(log_prob - batch.log_prob);
-                    torch::Tensor policy_loss_1 = batch.advantage * ratio;
-                    torch::Tensor policy_loss_2 = batch.advantage * torch::clamp(ratio, 1 - clip_range_, 1 + clip_range_);
+                    torch::Tensor policy_loss_1 = batch.advantages * ratio;
+                    torch::Tensor policy_loss_2 = batch.advantages * torch::clamp(ratio, 1 - clip_range_, 1 + clip_range_);
                     torch::Tensor policy_loss = -torch::min(policy_loss_1, policy_loss_2).mean();
                     torch::Tensor pred_value;
                     if (clip_range_vf_ > 0)
-                        pred_value = batch.value + torch::clamp(value - batch.value, -clip_range_vf_, clip_range_vf_);
+                        pred_value = batch.values + torch::clamp(values - batch.values, -clip_range_vf_, clip_range_vf_);
                     else
-                        pred_value = value; 
-                    torch::Tensor value_loss = torch::mse_loss(batch.ret, pred_value);
+                        pred_value = values; 
+                    torch::Tensor value_loss = torch::mse_loss(batch.returns, pred_value);
                     torch::Tensor entropy_loss;
                     if (entropy)
                         entropy_loss = -torch::mean(*entropy);
                     else
                         entropy_loss = -torch::mean(-log_prob);
                     torch::Tensor loss = policy_loss + vf_coef_ * value_loss + ent_coef_ * entropy_loss;
-                    float approx_kl_div;
+                    double approx_kl_div;
                     {
                         torch::NoGradGuard no_grad;
-                        approx_kl_div = torch_utils::ComputeApproxKL(log_prob, batch.log_prob).to(torch::kCPU).item<float>();
+                        approx_kl_div = torch_utils::ComputeApproxKL(log_prob, batch.log_prob).to(torch::kCPU).item<double>();
                     }
                     if (target_kl_ > 0 && approx_kl_div > 1.5 * target_kl_) {
                         std::cout << "Early stopping at epoch " << epoch << " due to reaching max kl: {approx_kl_div: " << approx_kl_div << "}"  << std::endl;
@@ -311,7 +312,7 @@ namespace rlop {
         std::unique_ptr<RolloutBuffer> rollout_buffer_ = nullptr;
         std::unique_ptr<PPOPolicy> policy_ = nullptr;
         std::unique_ptr<torch::optim::Optimizer> optimizer_ = nullptr;
-        torch::Tensor last_observation_;
-        torch::Tensor last_episode_start_;
+        torch::Tensor last_observations_;
+        torch::Tensor last_episode_starts_;
     };
 }

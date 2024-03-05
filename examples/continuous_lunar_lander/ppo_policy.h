@@ -35,65 +35,55 @@ namespace continuous_lunar_lander {
 
         void Reset() override {
             for (auto& module : action_mlp_->modules()) {
-                auto* linear = dynamic_cast<torch::nn::LinearImpl*>(module.get());
-                if (linear) {
-                    torch::nn::init::orthogonal_(linear->weight, std::sqrt(2));
-                    torch::nn::init::constant_(linear->bias, 0);
-                }
+                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
             }
             for (auto& module : value_mlp_->modules()) {
-                auto* linear = dynamic_cast<torch::nn::LinearImpl*>(module.get());
-                if (linear) {
-                    torch::nn::init::orthogonal_(linear->weight, std::sqrt(2));
-                    torch::nn::init::constant_(linear->bias, 0);
-                }
+                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
             }
-            torch::nn::init::orthogonal_(action_net_->weight, 0.01);
-            torch::nn::init::orthogonal_(value_net_->weight, 1.0);
-            torch::nn::init::constant_(action_net_->bias, 0);
-            torch::nn::init::constant_(value_net_->bias, 0);
-            torch::nn::init::constant_(log_std_, 0);
+            for (auto& module : action_net_->modules()) {
+                rlop::RLPolicy::InitWeights(module.get(), 0.01);
+            }
+            for (auto& module : value_net_->modules()) {
+                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(1.0));
+            }
         }
 
-        torch::Tensor PredictDist(const torch::Tensor& observation) {
-            torch::Tensor y = action_mlp_->forward(observation);
-            return action_net_->forward(y);
+        torch::Tensor PredictDist(const torch::Tensor& observations) {
+            torch::Tensor latent_pi = action_mlp_->forward(observations);
+            return action_net_->forward(latent_pi);
         }
 
-        torch::Tensor PredictAction(const torch::Tensor& observation, bool deterministic = true) override {
-            torch::Tensor mean = PredictDist(observation);
+        torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = true) override {
+            torch::Tensor mean = PredictDist(observations);
             if (deterministic) 
                 return mean;
             else {
-                torch::Tensor log_std = torch::ones_like(mean) * log_std_;
-                rlop::DiagGaussian dist(mean, log_std);
-                return dist.Sample(mean.sizes());
+                rlop::DiagGaussian dist(mean, log_std_.exp());
+                return dist.Sample();
             }
         }
 
-        torch::Tensor PredictValue(const torch::Tensor& observation) override {
-            torch::Tensor y = value_mlp_->forward(observation);
-            return value_net_->forward(y).squeeze(-1);
+        torch::Tensor PredictValues(const torch::Tensor& observations) override {
+            torch::Tensor latent_pi = value_mlp_->forward(observations);
+            return value_net_->forward(latent_pi).flatten();
         }
 
-        std::tuple<torch::Tensor, torch::Tensor, std::optional<torch::Tensor>> EvaluateAction(const torch::Tensor& observation, const torch::Tensor& action) override {
-            torch::Tensor mean = PredictDist(observation);
-            torch::Tensor log_std = torch::ones_like(mean) * log_std_;
-            rlop::DiagGaussian dist(mean, log_std);
-            torch::Tensor action_log_prob = dist.LogProb(action).sum(1);
-            torch::Tensor entropy = dist.Entropy().sum(1);
-            torch::Tensor value = PredictValue(observation);
-            return { value, action_log_prob, { entropy } };
+        std::tuple<torch::Tensor, torch::Tensor, std::optional<torch::Tensor>> EvaluateActions(const torch::Tensor& observations, const torch::Tensor& actions) override {
+            torch::Tensor mean = PredictDist(observations);
+            rlop::DiagGaussian dist(mean, log_std_.exp());
+            torch::Tensor log_prob = dist.LogProb(actions);
+            torch::Tensor entropy = dist.Entropy();
+            torch::Tensor values = PredictValues(observations);
+            return { values, log_prob, { entropy } };
         }
 
-        std::array<torch::Tensor, 3> Forward(const torch::Tensor& observation) override {
-            torch::Tensor mean = PredictDist(observation);
-            torch::Tensor log_std = torch::ones_like(mean) * log_std_;
-            rlop::DiagGaussian dist(mean, log_std);
-            torch::Tensor action = dist.Sample(mean.sizes());
-            torch::Tensor action_log_prob = dist.LogProb(action).sum(1);
-            torch::Tensor value = PredictValue(observation);
-            return { action, value, action_log_prob };
+        std::array<torch::Tensor, 3> Forward(const torch::Tensor& observations) override {
+            torch::Tensor mean = PredictDist(observations);
+            rlop::DiagGaussian dist(mean, log_std_.exp());
+            torch::Tensor actions = dist.Sample();
+            torch::Tensor log_prob = dist.LogProb(actions);
+            torch::Tensor values = PredictValues(observations);
+            return { actions, values, log_prob };
         }
 
     private:

@@ -140,8 +140,8 @@ namespace rlop {
             };
         }
 
-        virtual std::tuple<py::object, py::array, py::array, py::array, py::dict> Step(const py::object& action) {
-            auto results = py::cast<py::tuple>(env_.attr("step")(action));
+        virtual std::tuple<py::object, py::array, py::array, py::array, py::dict> Step(const py::object& actions) {
+            auto results = py::cast<py::tuple>(env_.attr("step")(actions));
             return {
                 std::move(results[0]),
                 std::move(py::cast<py::array>(results[1])),

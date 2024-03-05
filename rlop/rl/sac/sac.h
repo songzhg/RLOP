@@ -59,19 +59,19 @@ namespace rlop {
         //
         // Returns:
         //   torch::Tensor: A tensor representing the selected actions.
-        virtual torch::Tensor SampleAction() = 0;
+        virtual torch::Tensor SampleActions() = 0;
 
         virtual void Reset() override {
             RL::Reset();
             replay_buffer_ = MakeReplayBuffer();
             actor_ = MakeActor();
             actor_->to(device_);
+            actor_->Reset();
             critic_ = MakeCritic();
             critic_->to(device_);
             critic_->Reset();
             critic_target_ = MakeCritic();
             critic_target_->to(device_);
-            critic_target_->Reset();
             critic_target_->eval();
             torch_utils::CopyStateDict(*critic_, critic_target_.get());
             actor_optimizer_ = MakeActorOptimizer();
@@ -88,13 +88,14 @@ namespace rlop {
             }
             else
                 ent_coef_tensor_ = torch::tensor(ent_coef_, device_);
-            last_observation_ = ResetEnv();
+            last_observations_ = ResetEnv();
         }
 
         // Factory methods to create optimizers for the actor, critic, and entropy coefficient.
         // These allow for customization of the optimization process for different components of the SAC algorithm.
         virtual std::unique_ptr<torch::optim::Optimizer> MakeEntropyOptimizer() const {
-            return std::make_unique<torch::optim::Adam>(std::vector<torch::Tensor>{log_ent_coef_}, torch::optim::AdamOptions(lr_));
+            std::vector<torch::Tensor> parameters = { log_ent_coef_ };
+            return std::make_unique<torch::optim::Adam>(parameters, torch::optim::AdamOptions(lr_));
         }
 
         virtual std::unique_ptr<torch::optim::Optimizer> MakeActorOptimizer() const {
@@ -116,20 +117,22 @@ namespace rlop {
         }
 
         virtual void StoreTransition(
-            const torch::Tensor& action, 
-            const torch::Tensor& next_observation, 
-            const torch::Tensor& reward, 
-            const torch::Tensor& done,
-            const torch::Tensor& terminal_observation
+            const torch::Tensor& actions, 
+            const torch::Tensor& next_observations, 
+            const torch::Tensor& rewards, 
+            const torch::Tensor& terminations,
+            const torch::Tensor& truncations,
+            const torch::Tensor& final_observations
         ) {
-            torch::Tensor new_observation = next_observation;
-            if (terminal_observation.defined()) {
+            torch::Tensor new_observations = next_observations;
+            if (final_observations.defined()) {
+                torch::Tensor dones = torch::logical_or(terminations, truncations);
                 for (Int i=0; i<replay_buffer_->num_envs(); ++i) {
-                    if (done[i].item<bool>()) 
-                        new_observation[i] = terminal_observation[i];
+                    if (dones[i].item<bool>()) 
+                        new_observations[i] = final_observations[i];
                 }
             }
-            replay_buffer_->Add(last_observation_, action, new_observation, reward, done); 
+            replay_buffer_->Add(last_observations_, actions, new_observations, rewards, terminations); 
         }
 
         virtual void CollectRollouts() override {
@@ -138,19 +141,17 @@ namespace rlop {
             torch::NoGradGuard no_grad;
             if (num_iters_ == 0) {
                 for (Int step = 0; step < learning_starts_; ++step) {
-                    torch::Tensor action = SampleAction();
-                    auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
-                    torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
-                    StoreTransition(action, next_observation, reward, done, terminal_observation);
-                    last_observation_ = next_observation;
+                    torch::Tensor actions = SampleActions();
+                    auto [next_observations, rewards, terminations, truncations, final_observations] = Step(actions);
+                    StoreTransition(actions, next_observations, rewards, terminations, truncations, final_observations);
+                    last_observations_ = next_observations;
                 }
             }
             for (Int step = 0; step < train_freq_; ++step) {
-                torch::Tensor action = actor_->PredictAction(last_observation_.to(device_));
-                auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
-                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
-                StoreTransition(action, next_observation, reward, done, terminal_observation);
-                last_observation_ = next_observation;
+                torch::Tensor actions = actor_->PredictActions(last_observations_.to(device_));
+                auto [next_observations, rewards, terminations, truncations, final_observations] = Step(actions);
+                StoreTransition(actions, next_observations, rewards, terminations, truncations, final_observations);
+                last_observations_ = next_observations;
                 time_steps_ += NumEnvs();
             }
         }
@@ -175,8 +176,9 @@ namespace rlop {
             q_value_list.reserve(gradient_steps_);
             reward_list.reserve(gradient_steps_);
             for (Int step=0; step<gradient_steps_; ++step) {
-                auto batch = replay_buffer_->Sample(batch_size_).to(device_);
-                auto [actions_pi, log_prob] = actor_->PredictActionLogProb(batch.observation);
+                auto batch = replay_buffer_->Sample(batch_size_).To(device_);
+                auto [actions_pi, log_prob] = actor_->PredictLogProb(batch.observations);
+                log_prob = log_prob.reshape({-1, 1});
                 torch::Tensor ent_coef;
                 torch::Tensor ent_coef_loss;
                 if (ent_coef_optimizer_ != nullptr && log_ent_coef_.defined()) {
@@ -187,6 +189,7 @@ namespace rlop {
                 else 
                     ent_coef = ent_coef_tensor_;
                 ent_coef_list.push_back(ent_coef.detach());
+    
                 if (ent_coef_optimizer_ != nullptr && log_ent_coef_.defined()) {
                     ent_coef_optimizer_->zero_grad();
                     ent_coef_loss.backward();
@@ -195,34 +198,37 @@ namespace rlop {
                 torch::Tensor target_q_values;
                 {
                     torch::NoGradGuard no_grad;
-                    auto [next_actions, next_log_prob] = actor_->PredictActionLogProb(batch.next_observation);
-                    torch::Tensor next_q_values = torch::stack(critic_target_->Forward(batch.next_observation, next_actions), 1);
-                    next_q_values = std::get<0>(next_q_values.min(1)) - ent_coef * next_log_prob;
-                    target_q_values = batch.reward + (1 - batch.done) * gamma_ * next_q_values;
+                    auto [next_actions, next_log_prob] = actor_->PredictLogProb(batch.next_observations);
+                    torch::Tensor next_q_values = torch::stack(critic_target_->Forward(batch.next_observations, next_actions), 1);
+                    next_q_values = std::get<0>(torch::min(next_q_values, 1));
+                    next_q_values = next_q_values - ent_coef * next_log_prob;
+                    target_q_values = batch.rewards + (1 - batch.dones) * gamma_ * next_q_values;
                 }
-                auto current_q_values = critic_->Forward(batch.observation, batch.action);
+                auto current_q_values = critic_->Forward(batch.observations, batch.actions);
                 torch::Tensor min_q_value = std::get<0>(torch::stack(current_q_values, 1).detach().min(1));
                 q_value_list.push_back(std::move(min_q_value));
-                reward_list.push_back(batch.reward.detach());
+                reward_list.push_back(batch.rewards.detach());
+
                 torch::Tensor critic_loss = torch::tensor(0.0, device_);
-                for (const auto& current_q : current_q_values) {
-                    critic_loss += torch::mse_loss(current_q, target_q_values);
+                for (const auto& current : current_q_values) {
+                    critic_loss += torch::nn::functional::mse_loss(current, target_q_values);
                 }
                 critic_loss /= double(current_q_values.size());
-
                 critic_loss_list.push_back(critic_loss.detach());
+
                 critic_optimizer_->zero_grad();
                 critic_loss.backward();
                 critic_optimizer_->step();
 
-                torch::Tensor q_values_pi = torch::stack(critic_->Forward(batch.observation, actions_pi), 1);
-                torch::Tensor min_qf_pi = std::get<0>(q_values_pi.min(1));
+                torch::Tensor q_values_pi = torch::stack(critic_->Forward(batch.observations, actions_pi), 1);
+                torch::Tensor min_qf_pi = std::get<0>(torch::min(q_values_pi, 1));
                 torch::Tensor actor_loss = (ent_coef * log_prob - min_qf_pi).mean();
                 actor_loss_list.push_back(actor_loss.detach());
+
                 actor_optimizer_->zero_grad();
                 actor_loss.backward();
                 actor_optimizer_->step();
-
+                
                 if (step % target_update_interval_ == 0) {
                     auto [ params_names, params ] = torch_utils::GetParameters(*critic_);
                     auto [ target_params_names, target_params ] = torch_utils::GetParameters(*critic_target_);
@@ -262,42 +268,36 @@ namespace rlop {
             if (names.count("all") || names.count("actor")) {
                 torch::serialize::InputArchive actor_archive;
                 if (archive->try_read("actor", actor_archive)) {
-                    archive->read("actor", actor_archive);
                     actor_->load(actor_archive);
                 }
             }
             if (names.count("all") || names.count("critic")) {
                 torch::serialize::InputArchive critic_archive;
                 if (archive->try_read("critic", critic_archive)) {
-                    archive->read("critic", critic_archive);
                     critic_->load(critic_archive);
                 }
             }
             if (names.count("all") || names.count("critic_target")) {
                  torch::serialize::InputArchive critic_target_archive;
                 if (archive->try_read("critic_target", critic_target_archive)) {
-                    archive->read("critic_target", critic_target_archive);
                     critic_target_->load(critic_target_archive);
                 }
             }
             if (names.count("all") || names.count("actor_optimizer")) {
                 torch::serialize::InputArchive actor_optimizer_archive;
                 if (archive->try_read("actor_optimizer", actor_optimizer_archive)) {
-                    archive->read("actor_optimizer", actor_optimizer_archive);
                     actor_optimizer_->load(actor_optimizer_archive);
                 }
             }
             if (names.count("all") || names.count("critic_optimizer")) {
                 torch::serialize::InputArchive critic_optimizer_archive;
                 if (archive->try_read("critic_optimizer", critic_optimizer_archive)) {
-                    archive->read("critic_optimizer", critic_optimizer_archive);
                     critic_optimizer_->load(critic_optimizer_archive);
                 }
             }
             if ((names.count("all") || names.count("ent_coef_optimizer")) && ent_coef_optimizer_ != nullptr) {
                 torch::serialize::InputArchive ent_coef_optimizer_archive;
                 if (archive->try_read("ent_coef_optimizer", ent_coef_optimizer_archive)) {
-                    archive->read("ent_coef_optimizer", ent_coef_optimizer_archive);
                     ent_coef_optimizer_->load(ent_coef_optimizer_archive);
                 }
             }
@@ -437,6 +437,6 @@ namespace rlop {
         std::unique_ptr<torch::optim::Optimizer> ent_coef_optimizer_ = nullptr;
         torch::Tensor log_ent_coef_;
         torch::Tensor ent_coef_tensor_;
-        torch::Tensor last_observation_;
+        torch::Tensor last_observations_;
     };
 }

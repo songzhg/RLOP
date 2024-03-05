@@ -42,10 +42,9 @@ namespace continuous_lunar_lander {
             replay_buffer_capacity_(replay_buffer_capacity)
         {
             py::dict kwargs;
-            kwargs["continuous"]  = true;
             if (render)
                 kwargs["render_mode"]  = "human";
-            env_ = rlop::GymVectorEnv("LunarLander-v2", num_envs, "async", kwargs);
+            env_ = rlop::GymVectorEnv("LunarLanderContinuous-v2", num_envs, "async", kwargs);
         }
 
         std::unique_ptr<rlop::ReplayBuffer> MakeReplayBuffer() const override {
@@ -67,7 +66,7 @@ namespace continuous_lunar_lander {
             return std::make_unique<SACCritic>(2, replay_buffer_->observation_sizes()[0], replay_buffer_->action_sizes()[0]);
         }
 
-        torch::Tensor SampleAction() override {
+        torch::Tensor SampleActions() override {
             return rlop::gym_utils::ArrayToTensor(env_.action_space().attr("sample")());
         }
 
@@ -76,29 +75,29 @@ namespace continuous_lunar_lander {
         }
 
         torch::Tensor ResetEnv() override {
-            auto [observation, info] = env_.Reset();
-            return rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observation));
+            auto [observations, info] = env_.Reset();
+            return rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
         }
 
-        std::array<torch::Tensor, 5> Step(const torch::Tensor& action) override {
-            auto [observation, reward, terminated, truncated, info] = env_.Step(rlop::gym_utils::TensorToArray(action)); 
-            torch::Tensor next_observation = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observation));
-            torch::Tensor terminal_observation = torch::zeros_like(next_observation);
-            if (info.contains("final_observation")) {
+        std::array<torch::Tensor, 5> Step(const torch::Tensor& actions) override {
+            auto [observations, rewards, terminations, truncations, infos] = env_.Step(rlop::gym_utils::TensorToArray(actions)); 
+            torch::Tensor next_observations = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
+            torch::Tensor final_observations = torch::zeros_like(next_observations);
+            if (infos.contains("final_observation")) {
                 Int i=0;
-                auto final_observation = info["final_observation"];
-                for (const auto& obs : final_observation) {
+                auto observation_array = infos["final_observation"];
+                for (const auto& obs : observation_array) {
                     if (!obs.is_none()) 
-                        terminal_observation[i] = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(obs));
+                        final_observations[i] = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(obs));
                     ++i;
                 }
             }
             return { 
-                std::move(next_observation), 
-                std::move(rlop::gym_utils::ArrayToTensor(reward)),
-                std::move(rlop::gym_utils::ArrayToTensor(terminated)),
-                std::move(rlop::gym_utils::ArrayToTensor(truncated)),
-                std::move(terminal_observation)
+                std::move(next_observations), 
+                std::move(rlop::gym_utils::ArrayToTensor(rewards)),
+                std::move(rlop::gym_utils::ArrayToTensor(terminations)),
+                std::move(rlop::gym_utils::ArrayToTensor(truncations)),
+                std::move(final_observations)
             };
         }
 

@@ -71,6 +71,15 @@
         "cstring": "cpp",
         "ratio": "cpp",
         "iostream": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "mutex": "cpp",
+        "format": "cpp",
+        "complex": "cpp",
+        "charconv": "cpp",
+        "__bit_reference": "cpp",
+        "__functional_base": "cpp",
+        "__memory": "cpp",
+        "future": "cpp",
+        "locale": "cpp"
     }
 }

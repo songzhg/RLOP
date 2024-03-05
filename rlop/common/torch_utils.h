@@ -78,7 +78,7 @@ namespace rlop::torch_utils {
             if (i >= target_params.size()) {
                 throw std::runtime_error("PolyakUpdate: mismatch in the number of parameters and target parameters");
             }
-            target_params[i].data().mul_(1 - tau).add_(params[i].data(), tau);
+            target_params[i].mul_(1 - tau).add_(params[i], tau);
         }
     }
 
@@ -164,66 +164,33 @@ namespace rlop::torch_utils {
         return ev;
     }
 
-    // This class implements a bijective transformation of a probability distribution
-    // using the hyperbolic tangent (tanh) function, along with its inverse function
-    // and a log probability correction for the transformation.
-    class TanhBijector {
-    public:
-        // Constructs a TanhBijector with a specified epsilon for numerical stability.
-        //
-        // Parameters:
-        //   epsilon: A small positive value to avoid NaN in calculations due to numerical imprecision.
-        explicit TanhBijector(double epsilon = 1e-6) : epsilon_(epsilon) {}
-
-        // Applies the tanh function to input tensor.
-        //
-        // Parameters:
-        //   x: Input tensor.
-        //
-        // Returns:
-        //   torch::Tensor: Tensor after applying tanh.
-        static torch::Tensor Forward(const torch::Tensor& x) {
-            return x.tanh();
+    inline void SetRandomSeed(uint64_t seed, bool using_cuda = false) {
+        std::srand(seed);
+        torch::manual_seed(seed);
+        if (using_cuda) {
+            torch::cuda::manual_seed_all(seed);
+            at::globalContext().setDeterministicCuDNN(true);
+            at::globalContext().setBenchmarkCuDNN(false);
         }
+    }
 
-        // Computes the inverse hyperbolic tangent of the input tensor. Utilizes log1p for numerical 
-        // stability.
-        //
-        // Parameters:
-        //   x: Input tensor.
-        //
-        // Returns:
-        //   torch::Tensor: Inverse hyperbolic tangent of the input tensor.
-        static torch::Tensor Atanh(const torch::Tensor& x) {
-            return 0.5 * (x.log1p() - (-x).log1p());
+    inline void PrintTensorValue(const torch::Tensor& tensor, Int precision = 8) {
+        std::cout << std::fixed << std::setprecision(precision);
+        if (tensor.numel() == 1)
+            std::cout << tensor.item<double>() << std::endl;
+        else {
+            for (int64_t i = 0; i < tensor.size(0); ++i) {
+                if (tensor.dim() > 1) {
+                    PrintTensorValue(tensor[i], precision);
+                } else {
+                    std::cout << tensor[i].item<double>() << std::endl;
+                }
+            }
         }
+    }
 
-        // Applies the inverse transformation of tanh to the input tensor. Clips the input tensor to avoid NaN
-        // due to numerical imprecision.
-        //
-        // Parameters:
-        //   y: Input tensor.
-        //
-        // Returns:
-        //   torch::Tensor: Inverse tanh of the input tensor.
-        static torch::Tensor Inverse(const torch::Tensor& y) {
-            auto eps = std::numeric_limits<decltype(y.item().toFloat())>::epsilon();
-            return TanhBijector::Atanh(y.clamp(-1.0 + eps, 1.0 - eps));
-        }
-
-        // Calculates the log probability correction for the transformation. This is necessary to correct the log
-        // probabilities when transforming
-        //
-        // Parameters:
-        //   x: Input tensor.
-        //
-        // Returns:
-        //   torch::Tensor: Log probability correction.
-        torch::Tensor LogProbCorrection(const torch::Tensor& x) const {
-            return torch::log(1.0 - x.tanh().square() + epsilon_);
-        }
-
-    private:
-        double epsilon_;
-    };
+    inline void PrintTensor(const torch::Tensor& tensor, Int precision = 8) {
+        PrintTensorValue(tensor, precision);
+        std::cout << "[" << tensor.toString() << tensor.sizes() << "]" << std::endl;
+    }
 }

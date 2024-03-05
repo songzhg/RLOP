@@ -24,7 +24,7 @@ namespace rlop {
         // Returns:
         //   torch::Tensor: The selected action as a tensor. The action corresponds to the index of the
         //                  highest Q-value predicted by the network for the given observation.
-        virtual torch::Tensor PredictAction(const torch::Tensor& observation, bool deterministic = false) override {
+        virtual torch::Tensor PredictActions(const torch::Tensor& observation, bool deterministic = false) override {
             return std::get<1>(torch::max(Forward(observation), -1));
         }
 
@@ -36,6 +36,6 @@ namespace rlop {
         //
         // Returns:
         //   torch::Tensor: The estimated Q-values for all possible actions given the input observation.
-        virtual torch::Tensor Forward(const torch::Tensor& observation) = 0;
+        virtual torch::Tensor Forward(const torch::Tensor& observations) = 0;
     };
 }

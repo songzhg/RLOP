@@ -22,11 +22,6 @@ namespace multi_armed_bandit {
             num_visits_ = std::vector<Int>(problem_.num_arms(), 0);
         }
 
-        virtual void Reset(uint64_t seed) {
-            Reset();
-            rand_.Seed(seed);
-        }
-
         virtual void Solve(Int max_num_steps) {
             num_steps_ = 0;    
             max_num_steps_ = max_num_steps;

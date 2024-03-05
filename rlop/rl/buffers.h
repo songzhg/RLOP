@@ -94,19 +94,19 @@ namespace rlop {
     class ReplayBuffer : public RLBuffer {
     public:
         struct Batch {
-            torch::Tensor observation;
-            torch::Tensor action;
-            torch::Tensor next_observation;
-            torch::Tensor reward;
-            torch::Tensor done;
+            torch::Tensor observations;
+            torch::Tensor actions;
+            torch::Tensor next_observations;
+            torch::Tensor rewards;
+            torch::Tensor dones;
 
-            Batch to(const torch::Device& device) {
+            Batch To(const torch::Device& device) {
                 Batch batch;
-                batch.observation = observation.to(device);
-                batch.action = action.to(device);
-                batch.next_observation = next_observation.to(device);
-                batch.reward = reward.to(device);
-                batch.done = done.to(device);
+                batch.observations = observations.to(device);
+                batch.actions = actions.to(device);
+                batch.next_observations = next_observations.to(device);
+                batch.rewards = rewards.to(device);
+                batch.dones = dones.to(device);
                 return batch;
             }
         };
@@ -116,8 +116,8 @@ namespace rlop {
             Int num_envs,
             const std::vector<Int>& observation_sizes, 
             const std::vector<Int>& action_sizes,
-            const torch::Dtype& observation_type,
-            const torch::Dtype& action_type,
+            torch::Dtype observation_type = torch::kFloat32,
+            torch::Dtype action_type = torch::kFloat32,
             const torch::Device& device = torch::kCPU,
             bool optimize_memory_usage = false
         ) :
@@ -155,16 +155,16 @@ namespace rlop {
                     batch_indices = (torch::randint(1, buffer_size_, {batch_size}) + pos_) % buffer_size_;
                 else 
                     batch_indices = torch::randint(0, pos_, {batch_size});
-                batch.next_observation = observations_.index({ (batch_indices + 1) % buffer_size_, env_indices, "..."});
+                batch.next_observations = observations_.index({ (batch_indices + 1) % buffer_size_, env_indices, "..."});
             }
             else {
                 batch_indices = torch::randint(0, Size(), {batch_size});
-                batch.next_observation = next_observations_.index({ batch_indices, env_indices, "..."});
+                batch.next_observations = next_observations_.index({ batch_indices, env_indices, "..."});
             }
-            batch.observation = observations_.index({ batch_indices, env_indices, "..."});
-            batch.action = actions_.index({ batch_indices, env_indices, "..."});
-            batch.reward = rewards_.index({ batch_indices, env_indices});
-            batch.done = dones_.index({ batch_indices, env_indices});
+            batch.observations = observations_.index({ batch_indices, env_indices, "..."});
+            batch.actions = actions_.index({ batch_indices, env_indices, "..."});
+            batch.rewards = rewards_.index({ batch_indices, env_indices});
+            batch.dones = dones_.index({ batch_indices, env_indices});
             return batch;
         }
 
@@ -270,21 +270,21 @@ namespace rlop {
     class RolloutBuffer : public RLBuffer {
     public:
         struct Batch {
-            torch::Tensor observation;
-            torch::Tensor action;
-            torch::Tensor value;
+            torch::Tensor observations;
+            torch::Tensor actions;
+            torch::Tensor values;
             torch::Tensor log_prob;
-            torch::Tensor advantage;
-            torch::Tensor ret;
+            torch::Tensor advantages;
+            torch::Tensor returns;
 
-            Batch to(const torch::Device& device) {
+            Batch To(const torch::Device& device) {
                 Batch batch;
-                batch.observation = observation.to(device);
-                batch.action = action.to(device);
-                batch.value = value.to(device);
+                batch.observations = observations.to(device);
+                batch.actions = actions.to(device);
+                batch.values = values.to(device);
                 batch.log_prob = log_prob.to(device);
-                batch.advantage = advantage.to(device);
-                batch.ret = ret.to(device);
+                batch.advantages = advantages.to(device);
+                batch.returns = returns.to(device);
                 return batch;
             }
         };
@@ -344,12 +344,12 @@ namespace rlop {
             }
             Batch batch;
             torch::Tensor indices = indices_.slice(0, start_i_, start_i_ + batch_size);
-            batch.observation = torch::index_select(observations_, 0, indices); 
-            batch.action = torch::index_select(actions_, 0, indices); 
-            batch.value = torch::index_select(values_, 0, indices); 
+            batch.observations = torch::index_select(observations_, 0, indices); 
+            batch.actions = torch::index_select(actions_, 0, indices); 
+            batch.values = torch::index_select(values_, 0, indices); 
             batch.log_prob = torch::index_select(log_probs_, 0, indices); 
-            batch.advantage = torch::index_select(advantages_, 0, indices); 
-            batch.ret = torch::index_select(returns_, 0, indices);  
+            batch.advantages = torch::index_select(advantages_, 0, indices); 
+            batch.returns = torch::index_select(returns_, 0, indices);  
             start_i_+=batch_size;
             if (start_i_ >= data_size)
                 start_i_ = 0;
@@ -377,13 +377,13 @@ namespace rlop {
             }
         }
 
-        virtual void UpdateGAE(const torch::Tensor& last_value, const torch::Tensor& done, double gamma, double gae_lambda) {
+        virtual void UpdateGAE(const torch::Tensor& last_values, const torch::Tensor& dones, double gamma, double gae_lambda) {
             torch::Tensor last_gae_lam = torch::zeros(num_envs_).to(device_);
             Int size = Size();
             for (Int i=size-1; i>=0; --i) {
-                torch::Tensor next_non_terminal = i == size - 1? 1.0 - done.to(device_) : 1.0 - episode_starts_[i+1];
-                torch::Tensor next_value = i == size - 1? last_value.to(device_) : values_[i+1]; 
-                torch::Tensor delta = rewards_[i] + gamma * next_value * next_non_terminal - values_[i];
+                torch::Tensor next_non_terminal = i == size - 1? 1.0 - dones.to(device_) : 1.0 - episode_starts_[i+1];
+                torch::Tensor next_values = i == size - 1? last_values.to(device_) : values_[i+1]; 
+                torch::Tensor delta = rewards_[i] + gamma * next_values * next_non_terminal - values_[i];
                 last_gae_lam = delta + gamma * gae_lambda * next_non_terminal * last_gae_lam;
                 advantages_[i] = last_gae_lam;
             }

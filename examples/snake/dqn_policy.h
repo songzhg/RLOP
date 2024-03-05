@@ -24,22 +24,11 @@ namespace snake {
             register_module("mlp", mlp_);
         }
 
-        void Reset() override {
-            for (auto& module : children()) {
-                if (auto conv = dynamic_cast<torch::nn::Conv2dImpl*>(module.get())) {
-                    torch::nn::init::xavier_uniform_(conv->weight);
-                    torch::nn::init::constant_(conv->bias, 0);
-                }
-                else if (auto linear = dynamic_cast<torch::nn::LinearImpl*>(module.get())) {
-                    torch::nn::init::xavier_uniform_(linear->weight);
-                    torch::nn::init::constant_(linear->bias, 0);
-                }
-            }
-        }
+        void Reset() override {}
 
-        torch::Tensor Forward(const torch::Tensor& observation) override {
-            torch::Tensor feature = feature_extractor_->forward(observation);
-            return mlp_->forward(feature);
+        torch::Tensor Forward(const torch::Tensor& observations) override {
+            torch::Tensor features = feature_extractor_->forward(observations);
+            return mlp_->forward(features);
         }
 
     private:

@@ -22,8 +22,8 @@ namespace lunar_lander {
 
         void Reset() override {}
 
-        torch::Tensor Forward(const torch::Tensor& observation) override {
-            return mlp_->forward(observation);
+        torch::Tensor Forward(const torch::Tensor& observations) override {
+            return mlp_->forward(observations);
         }
 
     private:

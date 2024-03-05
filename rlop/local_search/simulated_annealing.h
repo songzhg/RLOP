@@ -54,8 +54,7 @@ namespace rlop {
             temp_ = initial_temp_;
         }
 
-        virtual void Reset(uint64_t seed) {
-            Reset();
+        virtual void SetSeed(uint64_t seed) {
             rand_.Seed(seed);
         }
 

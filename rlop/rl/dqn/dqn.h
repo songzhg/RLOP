@@ -49,19 +49,20 @@ namespace rlop {
         //
         // Returns:
         //   torch::Tensor: A tensor representing the selected actions.
-        virtual torch::Tensor SampleAction() = 0;
+        virtual torch::Tensor SampleActions() = 0;
 
         virtual void Reset() override {
             RL::Reset();
             replay_buffer_ = MakeReplayBuffer();
             q_net_ = MakeQNet();
-            target_q_net_ = MakeQNet();
             q_net_->to(device_);
+            q_net_->Reset();
+            target_q_net_ = MakeQNet();
             target_q_net_->to(device_);
             torch_utils::CopyStateDict(*q_net_, target_q_net_.get());
             target_q_net_->eval();
             optimizer_ = MakeOptimizer();
-            last_observation_ = ResetEnv();
+            last_observations_ = ResetEnv();
         }
 
         // Factory method to create an optimizer for the Q-network. By default, uses the RMSprop optimizer.
@@ -78,20 +79,22 @@ namespace rlop {
         }
 
         virtual void StoreTransition(
-            const torch::Tensor& action, 
-            const torch::Tensor& next_observation, 
-            const torch::Tensor& reward, 
-            const torch::Tensor& done,
-            const torch::Tensor& terminal_observation
+            const torch::Tensor& actions, 
+            const torch::Tensor& next_observations, 
+            const torch::Tensor& rewards, 
+            const torch::Tensor& terminations,
+            const torch::Tensor& truncations,
+            const torch::Tensor& final_observations
         ) {
-            torch::Tensor new_observation = next_observation;
-            if (terminal_observation.defined()) {
+            torch::Tensor new_observations = next_observations;
+            if (final_observations.defined()) {
+                torch::Tensor dones = torch::logical_or(terminations, truncations);
                 for (Int i=0; i<replay_buffer_->num_envs(); ++i) {
-                    if (done[i].item<bool>()) 
-                        new_observation[i] = terminal_observation[i];
+                    if (dones[i].item<bool>()) 
+                        new_observations[i] = final_observations[i];
                 }
             }
-            replay_buffer_->Add(last_observation_, action, new_observation, reward, done); 
+            replay_buffer_->Add(last_observations_, actions, new_observations, rewards, terminations); 
         }
 
         virtual void CollectRollouts() override {
@@ -99,23 +102,21 @@ namespace rlop {
             torch::NoGradGuard no_grad;
             if (num_iters_ == 0) {
                 for (Int step = 0; step < learning_starts_; ++step) {
-                    torch::Tensor action = SampleAction();
-                    auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
-                    torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
-                    StoreTransition(action, next_observation, reward, done, terminal_observation);
-                    last_observation_ = next_observation;
+                    torch::Tensor actions = SampleActions();
+                    auto [next_observations, rewards, terminations, truncations, final_observations] = Step(actions);
+                    StoreTransition(actions, next_observations, rewards, terminations, truncations, final_observations);
+                    last_observations_ = next_observations;
                 }
             }
             for (Int step = 0; step < train_freq_; ++step) {
-                torch::Tensor action;
+                torch::Tensor actions;
                 if (torch::rand({1}, torch::kFloat64).item<double>() < eps_)
-                    action = SampleAction();
+                    actions = SampleActions();
                 else 
-                    action = q_net_->PredictAction(last_observation_.to(device_));
-                auto [next_observation, reward, terminated, truncated, terminal_observation] = Step(action);
-                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::get_default_dtype());
-                StoreTransition(action, next_observation, reward, done, terminal_observation);
-                last_observation_ = next_observation;
+                    actions = q_net_->PredictActions(last_observations_.to(device_));
+                auto [next_observations, rewards, terminations, truncations, final_observations] = Step(actions);
+                StoreTransition(actions, next_observations, rewards, terminations, truncations, final_observations);
+                last_observations_ = next_observations;
                 time_steps_ += NumEnvs();
             }
         }
@@ -133,16 +134,16 @@ namespace rlop {
             loss_list.reserve(gradient_steps_);
             reward_list.reserve(gradient_steps_);
             for (Int step=0; step<gradient_steps_; ++step) {
-                auto batch = replay_buffer_->Sample(batch_size_).to(device_);
+                auto batch = replay_buffer_->Sample(batch_size_).To(device_);
                 torch::Tensor target_q_value;
                 {
                     torch::NoGradGuard no_grad;
-                    torch::Tensor next_q_values = target_q_net_->Forward(batch.next_observation);
+                    torch::Tensor next_q_values = target_q_net_->Forward(batch.next_observations);
                     torch::Tensor max_next_q_value = std::get<0>(torch::max(next_q_values, 1));
-                    target_q_value = batch.reward + (1 - batch.done) * gamma_ * max_next_q_value;
+                    target_q_value = batch.rewards + (1 - batch.dones) * gamma_ * max_next_q_value;
                 }
-                torch::Tensor q_values = q_net_->Forward(batch.observation);
-                torch::Tensor q_value = torch::gather(q_values, 1, batch.action.reshape({-1, 1})).squeeze(-1);
+                torch::Tensor q_values = q_net_->Forward(batch.observations);
+                torch::Tensor q_value = torch::gather(q_values, 1, batch.actions.reshape({-1, 1})).flatten();
                 torch::Tensor loss = torch::smooth_l1_loss(q_value, target_q_value);
                 optimizer_->zero_grad();
                 loss.backward();
@@ -151,7 +152,7 @@ namespace rlop {
                 ++num_updates_;
                 q_value_list.push_back(std::move(q_values.detach()));
                 loss_list.push_back(std::move(loss.detach()));
-                reward_list.push_back(std::move(batch.reward.detach()));
+                reward_list.push_back(std::move(batch.rewards.detach()));
             }
             if (!log_items_.empty()) {
                 auto it = log_items_.find("num_updates");
@@ -301,6 +302,6 @@ namespace rlop {
         std::unique_ptr<QNet> q_net_ = nullptr;
         std::unique_ptr<QNet> target_q_net_ = nullptr;
         std::unique_ptr<torch::optim::Optimizer> optimizer_ = nullptr;
-        torch::Tensor last_observation_;
+        torch::Tensor last_observations_;
     };
 }

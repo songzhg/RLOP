@@ -2,9 +2,16 @@
 #include "rlop/common/torch_utils.h"
 
 namespace rlop {
+    inline torch::Tensor SumIndependentDims(const torch::Tensor& tensor) {
+        if (tensor.sizes().size() > 1)
+            return tensor.sum(1);
+        else
+            return tensor.sum();
+    }
+
     class RLDistribution {
     public:
-        virtual torch::Tensor Sample(const c10::ArrayRef<Int>& size) const = 0;
+        virtual torch::Tensor Sample() const = 0;
 
         virtual torch::Tensor LogProb(const torch::Tensor& x) const = 0;
 
@@ -13,42 +20,38 @@ namespace rlop {
 
     class DiagGaussian : public RLDistribution {
     public:
-        DiagGaussian(const torch::Tensor& mean, const torch::Tensor& log_std) : mean_(mean), log_std_(log_std) {}
+        DiagGaussian(const torch::Tensor& mean, const torch::Tensor& std) : mean_(mean), std_(std) {}
 
-        virtual torch::Tensor Sample(const c10::ArrayRef<Int>& size) const override {
-            torch::Tensor standard = torch::randn(size).to(mean_.device());
-            return standard * log_std_.exp() + mean_;
+        virtual torch::Tensor Sample() const override {
+            torch::Tensor eps = torch::empty_like(std_).normal_();
+            return eps * std_ + mean_;
         }
 
         virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
-            auto log_scale = log_std_ + std::log(std::sqrt(2 * M_PI));
-            return -0.5 * torch::pow((x - mean_) / log_std_.exp(), 2) - log_scale;
+            torch::Tensor log_prob = -(x - mean_).square() / (2.0 * std_.square()) - std_.log() - std::log(std::sqrt(2.0 * M_PI));
+            return SumIndependentDims(log_prob);
         }
 
         virtual torch::Tensor Entropy() const override {
-            return log_std_ + 0.5 * std::log(2 * M_PI * M_E);
+            auto entropy = 0.5 + 0.5 * std::log(2 * M_PI) + std_.log();
+            return SumIndependentDims(entropy);
         }
 
     protected:
         torch::Tensor mean_;
-        torch::Tensor log_std_;
+        torch::Tensor std_;
     };
 
     class SquashedDiagGaussian : public DiagGaussian {
     public:
-        SquashedDiagGaussian(const torch::Tensor& mean, const torch::Tensor& log_std, double eps = 1e-6) : DiagGaussian(mean, log_std), eps_(eps) {}
+        SquashedDiagGaussian(const torch::Tensor& mean, const torch::Tensor& std, double eps = 1e-6) : DiagGaussian(mean, std), eps_(eps) {}
         
-        virtual torch::Tensor Sample(const c10::ArrayRef<Int>& size) const override {
-            return torch::tanh(DiagGaussian::Sample(size));
-        }
-
-        virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
-            torch::Tensor gaussian_x = torch_utils::TanhBijector::Inverse(x);
-            return DiagGaussian::LogProb(gaussian_x) - torch::sum(torch::log1p(-x.pow(2) + eps_), 1, true);
+        virtual torch::Tensor Sample() const override {
+            return torch::tanh(DiagGaussian::Sample());
         }
 
         virtual torch::Tensor LogProb(const torch::Tensor& x, const torch::Tensor& gaussian_x) const {
-            return DiagGaussian::LogProb(gaussian_x) - torch::sum(torch::log1p(-x.pow(2) + eps_), 1, true);
+            return DiagGaussian::LogProb(gaussian_x) - SumIndependentDims(torch::log(1.0 - x.square() + eps_));
         }
 
         virtual torch::Tensor Entropy() const override {

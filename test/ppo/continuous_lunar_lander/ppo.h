@@ -23,7 +23,7 @@ namespace continuous_lunar_lander {
             double max_grad_norm,
             double target_kl,
             std::string output_path,
-            torch::Device device 
+            torch::Device device
         ) :
             rlop::PPO(
                 batch_size,
@@ -44,16 +44,15 @@ namespace continuous_lunar_lander {
             num_steps_(num_steps)
         {
             py::dict kwargs;
-            kwargs["continuous"]  = true;
             if (render)
                 kwargs["render_mode"]  = "human";
-            env_ = rlop::GymVectorEnv("LunarLander-v2", num_envs, "async", kwargs);
+            env_ = rlop::GymVectorEnv("LunarLanderContinuous-v2", num_envs, "async", kwargs);
         }
 
         std::unique_ptr<rlop::RolloutBuffer> MakeRolloutBuffer() const override {
             return std::make_unique<rlop::RolloutBuffer>(
                 num_steps_, 
-                NumEnvs(),
+                env_.num_envs(),
                 rlop::gym_utils::ArrayShapeToTensorSizes(env_.observation_shape()),
                 rlop::gym_utils::ArrayShapeToTensorSizes(env_.action_shape()),
                 rlop::gym_utils::ArrayDtypeToTensorDtype(env_.observation_dtype()),
@@ -62,9 +61,7 @@ namespace continuous_lunar_lander {
         }
 
         std::unique_ptr<rlop::PPOPolicy> MakePPOPolicy() const override {
-            auto ret = std::make_unique<PPOPolicy>(rollout_buffer_->observation_sizes()[0], rollout_buffer_->action_sizes()[0]);
-            ret->Reset();
-            return ret;
+            return std::make_unique<PPOPolicy>(rollout_buffer_->observation_sizes()[0], rollout_buffer_->action_sizes()[0]);
         }
 
         Int NumEnvs() const override {
@@ -72,29 +69,29 @@ namespace continuous_lunar_lander {
         }
 
         torch::Tensor ResetEnv() override {
-            auto [observation, info] = env_.Reset();
-            return rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observation));
+            auto [observations, info] = env_.Reset();
+            return rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
         }
 
-        std::array<torch::Tensor, 5> Step(const torch::Tensor& action) override {
-            auto [observation, reward, terminated, truncated, info] = env_.Step(rlop::gym_utils::TensorToArray(action)); 
-            torch::Tensor next_observation = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observation));
-            torch::Tensor terminal_observation = torch::zeros_like(next_observation);
-            if (info.contains("final_observation")) {
+        std::array<torch::Tensor, 5> Step(const torch::Tensor& actions) override {
+            auto [observations, rewards, terminations, truncations, infos] = env_.Step(rlop::gym_utils::TensorToArray(actions)); 
+            torch::Tensor next_observations = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
+            torch::Tensor final_observations = torch::zeros_like(next_observations);
+            if (infos.contains("final_observation")) {
                 Int i=0;
-                auto final_observation = info["final_observation"];
-                for (const auto& obs : final_observation) {
+                auto observation_array = infos["final_observation"];
+                for (const auto& obs : observation_array) {
                     if (!obs.is_none()) 
-                        terminal_observation[i] = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(obs));
+                        final_observations[i] = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(obs));
                     ++i;
                 }
             }
             return { 
-                std::move(next_observation), 
-                std::move(rlop::gym_utils::ArrayToTensor(reward)),
-                std::move(rlop::gym_utils::ArrayToTensor(terminated)),
-                std::move(rlop::gym_utils::ArrayToTensor(truncated)),
-                std::move(terminal_observation)
+                std::move(next_observations), 
+                std::move(rlop::gym_utils::ArrayToTensor(rewards)),
+                std::move(rlop::gym_utils::ArrayToTensor(terminations)),
+                std::move(rlop::gym_utils::ArrayToTensor(truncations)),
+                std::move(final_observations)
             };
         }
 
