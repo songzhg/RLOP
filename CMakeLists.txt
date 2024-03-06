@@ -41,9 +41,9 @@ if(BUILD_LUNAR_LANDER)
     add_subdirectory(examples/lunar_lander)
 endif()
 
-# if(BUILD_CONINUOUS_LUNAR_LANDER)
+if(BUILD_CONINUOUS_LUNAR_LANDER)
     add_subdirectory(examples/continuous_lunar_lander)
-# endif()
+endif()
 
 if(BUILD_CONNECT4)
     add_subdirectory(examples/connect4)
