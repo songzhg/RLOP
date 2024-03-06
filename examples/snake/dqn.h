@@ -42,18 +42,17 @@ namespace snake {
             ),
             problem_(num_envs, render),
             replay_buffer_capacity_(replay_buffer_capacity),
-            exploration_fraction_(exploration_fraction),
-            initial_eps_(initial_eps),
-            final_eps_(final_eps),
             score_stack_(problem_.max_num_steps())
-        {}
+        {
+            linear_fn_ = rlop::MakeLinearFn(initial_eps, final_eps, exploration_fraction);
+        }
 
         void Reset() override {
             rlop::DQN::Reset();
             for (Int env_i=0; env_i<problem_.num_problems(); ++env_i) {
                 problem_.Reset(env_i, env_i);
             }
-            eps_ = initial_eps_;
+            eps_ = linear_fn_(time_steps_ / (double)max_time_steps_); 
         }
 
         void RegisterLogItems() override {
@@ -139,16 +138,13 @@ namespace snake {
 
         void Update() override {
             rlop::DQN::Update();
-            if (eps_ > final_eps_)
-                eps_ = std::max(0.0, eps_ - (initial_eps_ - final_eps_)  / (max_time_steps_ / problem_.num_problems() * exploration_fraction_));
+            eps_ = linear_fn_(time_steps_ / (double)max_time_steps_); 
         }
 
     protected:
         VectorProblem problem_;
         Int replay_buffer_capacity_;
-        double exploration_fraction_;
-        double initial_eps_;
-        double final_eps_;
         rlop::CircularStack<torch::Tensor> score_stack_;
+        std::function<double(double)> linear_fn_;
     };
 }

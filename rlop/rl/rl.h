@@ -2,6 +2,7 @@
 #include "rlop/common/base_algorithm.h"
 #include "rlop/common/platform.h"
 #include "rlop/common/torch_utils.h"
+#include "rlop/common/utils.h"
 
 namespace rlop {
     // The RL class is as an abstract base class for reinforcement learning algorithms, providing common interfaces

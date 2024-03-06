@@ -139,16 +139,12 @@ namespace rlop {
             actor_->eval();
             critic_->eval();
             torch::NoGradGuard no_grad;
-            if (num_iters_ == 0) {
-                for (Int step = 0; step < learning_starts_; ++step) {
-                    torch::Tensor actions = SampleActions();
-                    auto [next_observations, rewards, terminations, truncations, final_observations] = Step(actions);
-                    StoreTransition(actions, next_observations, rewards, terminations, truncations, final_observations);
-                    last_observations_ = next_observations;
-                }
-            }
             for (Int step = 0; step < train_freq_; ++step) {
-                torch::Tensor actions = actor_->PredictActions(last_observations_.to(device_));
+                torch::Tensor actions;
+                if (time_steps_ < learning_starts_)
+                    actions = SampleActions();
+                else 
+                    actions = actor_->PredictActions(last_observations_.to(device_));
                 auto [next_observations, rewards, terminations, truncations, final_observations] = Step(actions);
                 StoreTransition(actions, next_observations, rewards, terminations, truncations, final_observations);
                 last_observations_ = next_observations;
@@ -161,6 +157,8 @@ namespace rlop {
         }
     
         virtual void Train() override {
+            if (time_steps_ < learning_starts_)
+                return;
             actor_->train();
             critic_->train();
             std::vector<torch::Tensor> ent_coef_list;
@@ -210,7 +208,7 @@ namespace rlop {
 
                 torch::Tensor critic_loss = torch::tensor(0.0, device_);
                 for (const auto& current : current_q_values) {
-                    critic_loss += torch::nn::functional::mse_loss(current, target_q_values);
+                    critic_loss += torch::mse_loss(current, target_q_values);
                 }
                 critic_loss /= double(current_q_values.size());
                 critic_loss_list.push_back(critic_loss.detach());
@@ -261,6 +259,12 @@ namespace rlop {
                 if (it != log_items_.end()) 
                     it->second  = torch::stack(reward_list).mean();
             }
+        }
+
+        virtual void Monitor() override {
+            if (time_steps_ < learning_starts_)
+                return;
+            RL::Monitor();
         }
 
         virtual void LoadArchive(torch::serialize::InputArchive* archive, const std::unordered_set<std::string>& names) override {

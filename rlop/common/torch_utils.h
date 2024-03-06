@@ -164,6 +164,20 @@ namespace rlop::torch_utils {
         return ev;
     }
 
+    inline torch::Tensor SumIndependentDims(const torch::Tensor& tensor) {
+        if (tensor.sizes().size() > 1)
+            return tensor.sum(1);
+        else
+            return tensor.sum();
+    }
+
+    inline torch::Tensor LogitsToProbs(const torch::Tensor& logits, bool is_binary = false) {
+        if (is_binary)
+            return torch::sigmoid(logits);
+        else
+            return torch::softmax(logits, -1);
+    }
+
     inline void SetRandomSeed(uint64_t seed, bool using_cuda = false) {
         std::srand(seed);
         torch::manual_seed(seed);

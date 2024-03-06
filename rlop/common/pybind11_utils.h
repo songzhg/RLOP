@@ -6,7 +6,7 @@
 
 namespace py = pybind11;
 
-namespace rlop::gym_utils {
+namespace rlop::pybind11_utils {
     // Converts a Python tuple representing an array shape into a vector of integers suitable for
     // representing the sizes of a libtorch tensor.
     //

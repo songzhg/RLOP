@@ -64,4 +64,13 @@ namespace rlop {
         }
         return sum / (size - 1);
     }
+
+    inline std::function<double(double x)> MakeLinearFn(double start, double end, double end_fraction) {
+        return [start, end, end_fraction](double current_fraction) {
+            if (current_fraction > end_fraction)
+                return end;
+            else
+                return start + current_fraction * (end - start) / end_fraction;
+        };
+    }
 }

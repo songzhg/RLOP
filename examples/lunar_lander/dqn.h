@@ -39,30 +39,28 @@ namespace lunar_lander {
                 output_path,
                 device
             ),
-            replay_buffer_capacity_(replay_buffer_capacity),
-            exploration_fraction_(exploration_fraction),
-            initial_eps_(initial_eps),
-            final_eps_(final_eps)
+            replay_buffer_capacity_(replay_buffer_capacity)
         {
             py::dict kwargs;
             if (render)
                 kwargs["render_mode"]  = "human";
             env_ = rlop::GymVectorEnv("LunarLander-v2", num_envs, "async", kwargs);
+            linear_fn_ = rlop::MakeLinearFn(initial_eps, final_eps, exploration_fraction);
         } 
 
         void Reset() override {
             rlop::DQN::Reset();
-            eps_ = initial_eps_;
+            eps_ = linear_fn_(time_steps_ / (double)max_time_steps_); 
         }
 
         std::unique_ptr<rlop::ReplayBuffer> MakeReplayBuffer() const override {
             return std::make_unique<rlop::ReplayBuffer>(
                 replay_buffer_capacity_, 
                 env_.num_envs(), 
-                rlop::gym_utils::ArrayShapeToTensorSizes(env_.observation_shape()),
-                rlop::gym_utils::ArrayShapeToTensorSizes(env_.action_shape()),
-                rlop::gym_utils::ArrayDtypeToTensorDtype(env_.observation_dtype()),
-                rlop::gym_utils::ArrayDtypeToTensorDtype(env_.action_dtype())
+                rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.observation_shape()),
+                rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.action_shape()),
+                rlop::pybind11_utils::ArrayDtypeToTensorDtype(env_.observation_dtype()),
+                rlop::pybind11_utils::ArrayDtypeToTensorDtype(env_.action_dtype())
             );
         }
 
@@ -71,7 +69,7 @@ namespace lunar_lander {
         }
 
         torch::Tensor SampleActions() override {
-            return rlop::gym_utils::ArrayToTensor(env_.action_space().attr("sample")());
+            return rlop::pybind11_utils::ArrayToTensor(env_.action_space().attr("sample")());
         }
 
         Int NumEnvs() const override {
@@ -80,42 +78,39 @@ namespace lunar_lander {
 
         torch::Tensor ResetEnv() override {
             auto [observations, info] = env_.Reset();
-            return rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
+            return rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(observations));
         }
 
         std::array<torch::Tensor, 5> Step(const torch::Tensor& actions) override {
-            auto [observations, rewards, terminations, truncations, infos] = env_.Step(rlop::gym_utils::TensorToArray(actions)); 
-            torch::Tensor next_observations = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
+            auto [observations, rewards, terminations, truncations, infos] = env_.Step(rlop::pybind11_utils::TensorToArray(actions)); 
+            torch::Tensor next_observations = rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(observations));
             torch::Tensor final_observations = torch::zeros_like(next_observations);
             if (infos.contains("final_observation")) {
                 Int i=0;
                 auto observation_array = infos["final_observation"];
                 for (const auto& obs : observation_array) {
                     if (!obs.is_none()) 
-                        final_observations[i] = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(obs));
+                        final_observations[i] = rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(obs));
                     ++i;
                 }
             }
             return { 
                 std::move(next_observations), 
-                std::move(rlop::gym_utils::ArrayToTensor(rewards)),
-                std::move(rlop::gym_utils::ArrayToTensor(terminations)),
-                std::move(rlop::gym_utils::ArrayToTensor(truncations)),
+                std::move(rlop::pybind11_utils::ArrayToTensor(rewards)),
+                std::move(rlop::pybind11_utils::ArrayToTensor(terminations)),
+                std::move(rlop::pybind11_utils::ArrayToTensor(truncations)),
                 std::move(final_observations)
             };
         }
 
         void Update() override {
             rlop::DQN::Update();
-            if (eps_ > final_eps_)
-                eps_ = std::max(final_eps_, initial_eps_ - (initial_eps_ - final_eps_) * time_steps_  / (max_time_steps_ * exploration_fraction_));
+            eps_ = linear_fn_(time_steps_ / (double)max_time_steps_); 
         }
 
     protected:
         rlop::GymVectorEnv env_;
         Int replay_buffer_capacity_;
-        double exploration_fraction_;
-        double initial_eps_;
-        double final_eps_;
+        std::function<double(double)> linear_fn_;
     };
 }

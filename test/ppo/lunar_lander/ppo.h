@@ -53,10 +53,10 @@ namespace lunar_lander {
             return std::make_unique<rlop::RolloutBuffer>(
                 num_steps_, 
                 env_.num_envs(),
-                rlop::gym_utils::ArrayShapeToTensorSizes(env_.observation_shape()),
-                rlop::gym_utils::ArrayShapeToTensorSizes(env_.action_shape()),
-                rlop::gym_utils::ArrayDtypeToTensorDtype(env_.observation_dtype()),
-                rlop::gym_utils::ArrayDtypeToTensorDtype(env_.action_dtype())
+                rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.observation_shape()),
+                rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.action_shape()),
+                rlop::pybind11_utils::ArrayDtypeToTensorDtype(env_.observation_dtype()),
+                rlop::pybind11_utils::ArrayDtypeToTensorDtype(env_.action_dtype())
             );
         }
 
@@ -70,27 +70,27 @@ namespace lunar_lander {
 
         torch::Tensor ResetEnv() override {
             auto [observations, info] = env_.Reset();
-            return rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
+            return rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(observations));
         }
 
         std::array<torch::Tensor, 5> Step(const torch::Tensor& actions) override {
-            auto [observations, rewards, terminations, truncations, infos] = env_.Step(rlop::gym_utils::TensorToArray(actions)); 
-            torch::Tensor next_observations = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(observations));
+            auto [observations, rewards, terminations, truncations, infos] = env_.Step(rlop::pybind11_utils::TensorToArray(actions)); 
+            torch::Tensor next_observations = rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(observations));
             torch::Tensor final_observations = torch::zeros_like(next_observations);
             if (infos.contains("final_observation")) {
                 Int i=0;
                 auto observation_array = infos["final_observation"];
                 for (const auto& obs : observation_array) {
                     if (!obs.is_none()) 
-                        final_observations[i] = rlop::gym_utils::ArrayToTensor(py::cast<py::array>(obs));
+                        final_observations[i] = rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(obs));
                     ++i;
                 }
             }
             return { 
                 std::move(next_observations), 
-                std::move(rlop::gym_utils::ArrayToTensor(rewards)),
-                std::move(rlop::gym_utils::ArrayToTensor(terminations)),
-                std::move(rlop::gym_utils::ArrayToTensor(truncations)),
+                std::move(rlop::pybind11_utils::ArrayToTensor(rewards)),
+                std::move(rlop::pybind11_utils::ArrayToTensor(terminations)),
+                std::move(rlop::pybind11_utils::ArrayToTensor(truncations)),
                 std::move(final_observations)
             };
         }

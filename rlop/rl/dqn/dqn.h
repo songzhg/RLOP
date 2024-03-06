@@ -100,17 +100,9 @@ namespace rlop {
         virtual void CollectRollouts() override {
             q_net_->eval();
             torch::NoGradGuard no_grad;
-            if (num_iters_ == 0) {
-                for (Int step = 0; step < learning_starts_; ++step) {
-                    torch::Tensor actions = SampleActions();
-                    auto [next_observations, rewards, terminations, truncations, final_observations] = Step(actions);
-                    StoreTransition(actions, next_observations, rewards, terminations, truncations, final_observations);
-                    last_observations_ = next_observations;
-                }
-            }
             for (Int step = 0; step < train_freq_; ++step) {
                 torch::Tensor actions;
-                if (torch::rand({1}, torch::kFloat64).item<double>() < eps_)
+                if (time_steps_ < learning_starts_ || torch::rand({1}, torch::kFloat64).item<double>() < eps_)
                     actions = SampleActions();
                 else 
                     actions = q_net_->PredictActions(last_observations_.to(device_));
@@ -126,6 +118,8 @@ namespace rlop {
         }
 
         virtual void Train() override {
+            if (time_steps_ < learning_starts_)
+                return;
             q_net_->train();
             std::vector<torch::Tensor> q_value_list;
             std::vector<torch::Tensor> loss_list;
@@ -171,6 +165,12 @@ namespace rlop {
                 if (it != log_items_.end()) 
                     it->second = torch::tensor(eps_);
             }
+        }
+
+        virtual void Monitor() override {
+            if (time_steps_ < learning_starts_)
+                return;
+            RL::Monitor();
         }
 
         virtual void Update() {

@@ -1,5 +1,5 @@
 #pragma once
-#include "rlop/common/gym_utils.h"
+#include "rlop/common/pybind11_utils.h"
 
 namespace rlop {
     // GymEnv is a class that encapsulates an Gymnasium environment, allowing C++ code to interface

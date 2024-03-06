@@ -1,6 +1,6 @@
 #pragma once
-#include "rlop/common/torch_utils.h"
 #include "rlop/common/utils.h"
+#include "rlop/common/torch_utils.h"
 
 namespace rlop {
     // RLEvaluator is a classs to assess the performance of a RL model by executing it in
