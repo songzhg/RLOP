@@ -89,8 +89,8 @@ namespace rlop {
                 if (terminal_observations.defined()) {
                     for (Int i=0; i<rollout_buffer_->num_envs(); ++i) {
                         if (dones[i].item<bool>() && !truncations[i].item<bool>()) {
-                            torch::Tensor terminal_values = policy_->PredictValues(terminal_observations[i].to(device_))[0];
-                            rewards[i] += gamma_ * terminal_values.to(rewards.device());
+                            torch::Tensor terminal_value = policy_->PredictValues(terminal_observations[i].unsqueeze(0).to(device_))[0];
+                            rewards[i] += gamma_ * terminal_value.to(rewards.device());
                         }
                     }
                 }

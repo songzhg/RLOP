@@ -1,5 +1,6 @@
 #pragma once
 #include "rlop/rl/ppo/policy.h"
+#include "rlop/rl/distributions.h"
 
 namespace snake {
     class PPOPolicy : public rlop::PPOPolicy {
@@ -45,55 +46,49 @@ namespace snake {
             }
         }
 
-        torch::Tensor ExtractFeatures(const torch::Tensor& observations) {
-            if (observations.sizes().size() == observation_sizes_.size())
-                return feature_extractor_->forward(observations.unsqueeze(0));
-            else
-                return feature_extractor_->forward(observations);
-        }
-
-        torch::Tensor PredictProbFromFeature(const torch::Tensor& features) {
+        torch::Tensor PredictActionLogitsFromFeatures(const torch::Tensor& features) {
             torch::Tensor latent_pi = torch::relu(action_mlp_->forward(features));
-            return torch::softmax(action_net_->forward(latent_pi), -1);
+            return action_net_->forward(latent_pi);
         }
 
-        torch::Tensor PredictValueFromFeature(const torch::Tensor& features) {
+        torch::Tensor PredictValuesFromFeatures(const torch::Tensor& features) {
             torch::Tensor latent_vf = torch::relu(value_mlp_->forward(features));
-            return value_net_->forward(latent_vf).squeeze(-1);
+            return value_net_->forward(latent_vf).flatten();
         }
 
         torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = true) override {
-            torch::Tensor features = ExtractFeatures(observations);
-            torch::Tensor prob = PredictProbFromFeature(features);
+            torch::Tensor features = feature_extractor_->forward(observations);
+            torch::Tensor logits = PredictActionLogitsFromFeatures(features);
+            rlop::Categorical dist(logits);
             if (deterministic)
-                return std::get<1>(torch::max(prob, -1));
+                return dist.Mode();
             else
-                return torch::multinomial(prob, 1).squeeze(-1);
+                return dist.Sample();
         }
 
         torch::Tensor PredictValues(const torch::Tensor& observations) override {
-            torch::Tensor features = ExtractFeatures(observations);
-            return PredictValueFromFeature(features);
+            torch::Tensor features = feature_extractor_->forward(observations);;
+            return PredictValuesFromFeatures(features);
         }
 
         std::tuple<torch::Tensor, torch::Tensor, std::optional<torch::Tensor>> EvaluateActions(const torch::Tensor& observations, const torch::Tensor& actions) override {
-            torch::Tensor features = ExtractFeatures(observations);
-            torch::Tensor prob = PredictProbFromFeature(features);
-            torch::Tensor log_prob = torch::log(prob + 1e-8);
-            torch::Tensor entropy = -torch::sum(prob * log_prob, -1);
-            torch::Tensor values = PredictValueFromFeature(features);
-            torch::Tensor action_log_prob = torch::gather(log_prob, 1, actions.reshape({-1, 1}));
-            return { values, action_log_prob.flatten(), { entropy } };
+            torch::Tensor features = feature_extractor_->forward(observations);;
+            torch::Tensor logits = PredictActionLogitsFromFeatures(features);
+            torch::Tensor values = PredictValuesFromFeatures(features);
+            rlop::Categorical dist(logits);
+            torch::Tensor log_prob = dist.LogProb(actions);
+            torch::Tensor entropy = dist.Entropy();
+            return { values, log_prob, { entropy } };
         }
 
         std::array<torch::Tensor, 3> Forward(const torch::Tensor& observations) override {
-            torch::Tensor features = ExtractFeatures(observations);
-            torch::Tensor prob = PredictProbFromFeature(features);
-            torch::Tensor log_prob = torch::log(prob + 1e-8);
-            torch::Tensor actions = torch::multinomial(prob, 1);
-            torch::Tensor action_log_prob = torch::gather(log_prob, 1, actions);
-            torch::Tensor values = PredictValueFromFeature(features);
-            return { actions.flatten(), values, action_log_prob.flatten() };
+            torch::Tensor features = feature_extractor_->forward(observations);
+            torch::Tensor logits = PredictActionLogitsFromFeatures(features);
+            rlop::Categorical dist(logits);
+            torch::Tensor actions = dist.Sample();
+            torch::Tensor values = PredictValuesFromFeatures(features);
+            torch::Tensor log_prob = dist.LogProb(actions);
+            return { actions, values, log_prob };
         }
 
     private:

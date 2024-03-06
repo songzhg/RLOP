@@ -45,9 +45,9 @@ namespace continuous_lunar_lander {
 
         torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = false) override {
             auto [ mean, log_std ] = PredictDist(observations);
-            if (deterministic)
-                return mean;
             rlop::SquashedDiagGaussian dist(mean, log_std.exp());
+            if (deterministic)
+                return dist.Mode();
             return dist.Sample();
         }
         

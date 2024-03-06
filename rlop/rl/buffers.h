@@ -169,20 +169,20 @@ namespace rlop {
         }
 
         virtual void Add(
-            const torch::Tensor& observation,
-            const torch::Tensor& action,
-            const torch::Tensor& next_observation,
-            const torch::Tensor& reward,
-            const torch::Tensor& done
+            const torch::Tensor& observations,
+            const torch::Tensor& actions,
+            const torch::Tensor& next_observations,
+            const torch::Tensor& rewards,
+            const torch::Tensor& dones
         ) {
-            observations_[pos_] = observation.to(device_);
-            actions_[pos_] = action.to(device_);
+            observations_[pos_] = observations.to(device_);
+            actions_[pos_] = actions.to(device_);
             if (optimize_memory_usage_)
-                observations_[(pos_ + 1) % buffer_size_] = next_observation.to(device_); 
+                observations_[(pos_ + 1) % buffer_size_] = next_observations.to(device_); 
             else
-                next_observations_[pos_] = next_observation.to(device_);
-            rewards_[pos_] = reward.to(device_);
-            dones_[pos_] = done.to(device_);
+                next_observations_[pos_] = next_observations.to(device_);
+            rewards_[pos_] = rewards.to(device_);
+            dones_[pos_] = dones.to(device_);
             pos_ += 1;
             if (pos_ >= buffer_size_) {
                 full_ = true;
@@ -357,19 +357,19 @@ namespace rlop {
         }
 
         virtual void Add(
-            const torch::Tensor& observation,
-            const torch::Tensor& action,
-            const torch::Tensor& value,
+            const torch::Tensor& observations,
+            const torch::Tensor& actions,
+            const torch::Tensor& values,
             const torch::Tensor& log_prob,
-            const torch::Tensor& reward,
-            const torch::Tensor& episode_start
+            const torch::Tensor& rewards,
+            const torch::Tensor& episode_starts
         ) {
-            observations_[pos_] = observation.to(device_);
-            actions_[pos_] = action.to(device_);
-            values_[pos_] = value.to(device_);
+            observations_[pos_] = observations.to(device_);
+            actions_[pos_] = actions.to(device_);
+            values_[pos_] = values.to(device_);
             log_probs_[pos_] = log_prob.to(device_);
-            rewards_[pos_] = reward.to(device_);
-            episode_starts_[pos_] = episode_start.to(device_);
+            rewards_[pos_] = rewards.to(device_);
+            episode_starts_[pos_] = episode_starts.to(device_);
             pos_ += 1;
             if (pos_ >= buffer_size_) {
                 full_ = true;

@@ -53,12 +53,12 @@ namespace continuous_lunar_lander {
             return action_net_->forward(latent_pi);
         }
 
-        torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = true) override {
+        torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = false) override {
             torch::Tensor mean = PredictDist(observations);
+            rlop::DiagGaussian dist(mean, log_std_.exp());
             if (deterministic) 
-                return mean;
+                return dist.Mode();
             else {
-                rlop::DiagGaussian dist(mean, log_std_.exp());
                 return dist.Sample();
             }
         }

@@ -156,7 +156,7 @@ namespace rlop {
             }
         }
 
-        virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) {
+        virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) override {
             return actor_->Predict(observation.to(device_), deterministic, state, episode_start);
         }
     
@@ -178,7 +178,6 @@ namespace rlop {
             for (Int step=0; step<gradient_steps_; ++step) {
                 auto batch = replay_buffer_->Sample(batch_size_).To(device_);
                 auto [actions_pi, log_prob] = actor_->PredictLogProb(batch.observations);
-                log_prob = log_prob.reshape({-1, 1});
                 torch::Tensor ent_coef;
                 torch::Tensor ent_coef_loss;
                 if (ent_coef_optimizer_ != nullptr && log_ent_coef_.defined()) {

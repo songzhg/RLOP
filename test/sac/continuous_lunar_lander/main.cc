@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
             1, // train_freq
             1, // gradient_steps
             1, // target_update_interval
-            path,// + "_" + std::to_string(i), // output_path
+            path + "_" + std::to_string(i), // output_path
             torch::kCUDA // device
         );
         solver.Reset();

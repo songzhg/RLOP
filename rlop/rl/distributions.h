@@ -9,9 +9,18 @@ namespace rlop {
             return tensor.sum();
     }
 
+    inline torch::Tensor LogitsToProbs(const torch::Tensor& logits, bool is_binary = false) {
+        if (is_binary)
+            return torch::sigmoid(logits);
+        else
+            return torch::softmax(logits, -1);
+    }
+    
     class RLDistribution {
     public:
         virtual torch::Tensor Sample() const = 0;
+
+        virtual torch::Tensor Mode() const = 0;
 
         virtual torch::Tensor LogProb(const torch::Tensor& x) const = 0;
 
@@ -25,6 +34,10 @@ namespace rlop {
         virtual torch::Tensor Sample() const override {
             torch::Tensor eps = torch::empty_like(std_).normal_();
             return eps * std_ + mean_;
+        }
+
+        virtual torch::Tensor Mode() const override {
+            return mean_;
         }
 
         virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
@@ -50,6 +63,14 @@ namespace rlop {
             return torch::tanh(DiagGaussian::Sample());
         }
 
+        virtual torch::Tensor Mode() const override {
+            return torch::tanh(DiagGaussian::Mode());
+        }
+
+        virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
+            return torch::Tensor();
+        }
+
         virtual torch::Tensor LogProb(const torch::Tensor& x, const torch::Tensor& gaussian_x) const {
             return DiagGaussian::LogProb(gaussian_x) - SumIndependentDims(torch::log(1.0 - x.square() + eps_));
         }
@@ -62,4 +83,35 @@ namespace rlop {
         double eps_;
     };
 
+    class Categorical : public RLDistribution {
+    public:
+        Categorical(const torch::Tensor& logits) : logits_(logits), prob_(LogitsToProbs(logits)) {}
+
+        virtual torch::Tensor Sample() const override {
+            return torch::multinomial(prob_, 1).flatten();
+        }
+
+        virtual torch::Tensor Mode() const override {
+            return std::get<1>(torch::max(prob_, -1));
+        }
+
+        virtual torch::Tensor LogProb() const {
+            if (!log_prob_.defined())
+                log_prob_ = torch::log(prob_ + 1e-8);
+            return log_prob_;
+        }
+
+        virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
+            return torch::gather(LogProb(), 1, x.reshape({-1, 1})).flatten();
+        }
+
+        virtual torch::Tensor Entropy() const override {
+            return -torch::sum(prob_ * LogProb(), -1);;
+        } 
+
+    protected:
+        torch::Tensor logits_;
+        torch::Tensor prob_;
+        mutable torch::Tensor log_prob_;
+    };
 }

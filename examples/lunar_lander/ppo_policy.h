@@ -1,5 +1,6 @@
 #pragma once
 #include "rlop/rl/ppo/policy.h"
+#include "rlop/rl/distributions.h"
 
 namespace lunar_lander {
     using rlop::Int;
@@ -45,18 +46,18 @@ namespace lunar_lander {
             }
         }
 
-        torch::Tensor PredictDist(const torch::Tensor& observations) {
+        torch::Tensor PredictActionLogits(const torch::Tensor& observations) {
             torch::Tensor latent_pi = action_mlp_->forward(observations);
-            latent_pi = action_net_->forward(latent_pi);
-            return torch::softmax(latent_pi, -1);
+            return action_net_->forward(latent_pi);
         }
 
         torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = true) override {
-            torch::Tensor dist = PredictDist(observations);
+            torch::Tensor logits = PredictActionLogits(observations);
+            rlop::Categorical dist(logits);
             if (deterministic)
-                return std::get<1>(torch::max(dist, -1));
+                return dist.Mode();
             else
-                return torch::multinomial(dist, 1).flatten();
+                return dist.Sample();
         }
 
         torch::Tensor PredictValues(const torch::Tensor& observations) override {
@@ -65,21 +66,21 @@ namespace lunar_lander {
         }
 
         std::tuple<torch::Tensor, torch::Tensor, std::optional<torch::Tensor>> EvaluateActions(const torch::Tensor& observations, const torch::Tensor& actions) override {
-            torch::Tensor dist = PredictDist(observations);
-            torch::Tensor log_prob = torch::log(dist + 1e-8);
-            torch::Tensor entropy = -torch::sum(dist * log_prob, -1);
+            torch::Tensor logits = PredictActionLogits(observations);
             torch::Tensor values = PredictValues(observations);
-            torch::Tensor action_log_prob = torch::gather(log_prob, 1, actions.reshape({-1, 1}));
-            return { values, action_log_prob.flatten(), { entropy } };
+            rlop::Categorical dist(logits);
+            torch::Tensor log_prob = dist.LogProb(actions);
+            torch::Tensor entropy = dist.Entropy();
+            return { values, log_prob, { entropy } };
         }
 
         std::array<torch::Tensor, 3> Forward(const torch::Tensor& observations) override {
-            torch::Tensor prob = PredictDist(observations);
-            torch::Tensor log_prob = torch::log(prob + 1e-8);
-            torch::Tensor actions = torch::multinomial(prob, 1);
-            torch::Tensor action_log_prob = torch::gather(log_prob, 1, actions);
+            torch::Tensor logits = PredictActionLogits(observations);
+            rlop::Categorical dist(logits);
+            torch::Tensor actions = dist.Sample();
             torch::Tensor values = PredictValues(observations);
-            return { actions.flatten(), values, action_log_prob.flatten() };
+            torch::Tensor log_prob = dist.LogProb(actions);
+            return { actions, values, log_prob };
         }
 
     private:
