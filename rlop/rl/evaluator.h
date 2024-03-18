@@ -26,7 +26,7 @@ namespace rlop {
             for (Int i = 0; i < num_envs; ++i) {
                 episode_count_targets[i] = (num_eval_episodes + i) / num_envs;
             }
-            torch::Tensor current_rewards = torch::zeros(num_envs);
+            torch::Tensor current_rewards = torch::zeros(num_envs, torch::kFloat64);
             std::vector<Int> current_lengths(num_envs, 0);
             torch::Tensor state = torch::Tensor();
             torch::Tensor episode_start = torch::ones(num_envs, torch::kBool);
@@ -43,11 +43,11 @@ namespace rlop {
                     break;
                 auto [action, next_state] = rl->Predict(observation, deterministic, state, episode_start);
                 auto [next_observation, reward, terminated, truncated, terminal_observation] = rl->Step(action);
-                torch::Tensor done = torch::logical_or(terminated, truncated).to(torch::kFloat32);
+                torch::Tensor done = torch::logical_or(terminated, truncated);
                 current_rewards += reward;
                 std::for_each(current_lengths.begin(), current_lengths.end(), [](Int& item) { item += 1; });
                 for (Int i = 0; i < num_envs; ++i) {
-                    if (episode_counts[i] < episode_count_targets[i] && done[i].item<double>()) {
+                    if (episode_counts[i] < episode_count_targets[i] && done[i].item<bool>()) {
                         episode_rewards_.push_back(current_rewards[i].item<double>());
                         episode_lengths_.push_back(current_lengths[i]);
                         current_rewards[i] = 0;
@@ -59,10 +59,10 @@ namespace rlop {
                 state = next_state;
             }
             torch::Tensor reward = torch::tensor(episode_rewards_);
-            return { reward.mean().item<double>(), reward.std().item<double>() };
+            return { reward.mean().item<double>(), reward.std(false).item<double>() };
         }
 
-        const std::vector<float>& episode_rewards() const {
+        const std::vector<double>& episode_rewards() const {
             return episode_rewards_;
         }
 
@@ -71,7 +71,7 @@ namespace rlop {
         }
 
     protected:
-        std::vector<float> episode_rewards_;
+        std::vector<double> episode_rewards_;
         std::vector<Int> episode_lengths_;
     };
 }

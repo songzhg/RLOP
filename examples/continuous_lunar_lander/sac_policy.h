@@ -7,9 +7,41 @@ namespace continuous_lunar_lander {
     using rlop::kIntNull;
     using rlop::kIntFull;
 
-    class SACActor : public rlop::SACActor {
+    Int kWidth = 256;
+
+    class SACCritic : public rlop::ContinuousQNet {
     public:
-        SACActor(Int observation_dim, Int action_dim) :
+        SACCritic(Int num_critics, Int observation_dim, Int action_dim) : q_nets_(num_critics) {
+            for (Int i=0; i<num_critics; ++i) {
+                q_nets_[i]->push_back(torch::nn::Linear(observation_dim + action_dim, kWidth));
+                q_nets_[i]->push_back(torch::nn::ReLU());
+                q_nets_[i]->push_back(torch::nn::Linear(kWidth, kWidth));
+                q_nets_[i]->push_back(torch::nn::ReLU());
+                q_nets_[i]->push_back(torch::nn::Linear(kWidth, 1));
+                register_module("q_net_" + std::to_string(i), q_nets_[i]);
+            }
+        }
+
+        std::vector<torch::Tensor> PredictQValues(const torch::Tensor& observations, const torch::Tensor& actions) override {
+            std::vector<torch::Tensor> q_values;
+            q_values.reserve(q_nets_.size()); 
+            torch::Tensor input = torch::cat({observations, actions}, 1);
+            for (Int i=0; i<q_nets_.size(); ++i) {
+                q_values.push_back(q_nets_[i]->forward(input));
+            }
+            return q_values;
+        }
+
+    private:
+        std::vector<torch::nn::Sequential> q_nets_;
+    };
+
+    class SACPolicy : public rlop::SACPolicy {
+    public:
+        SACPolicy(Int observation_dim, Int action_dim, Int num_critics) :
+            observation_dim_(observation_dim),
+            action_dim_(action_dim),
+            num_critics_(num_critics),
             latent_pi_(
                 torch::nn::Linear(observation_dim, 256),
                 torch::nn::ReLU(),
@@ -24,7 +56,9 @@ namespace continuous_lunar_lander {
             register_module("log_std", log_std_);
         }
 
-        void Reset() override {}
+        std::shared_ptr<rlop::ContinuousQNet> MakeCritic() const override {
+            return std::make_shared<SACCritic>(num_critics_, observation_dim_, action_dim_);
+        }
 
         std::array<torch::Tensor, 2> PredictDist(const torch::Tensor& observations) {
             torch::Tensor y = latent_pi_->forward(observations);
@@ -53,39 +87,10 @@ namespace continuous_lunar_lander {
         
     private:
         torch::nn::Sequential latent_pi_;
-        torch::nn::Linear mu_;
-        torch::nn::Linear log_std_;
-    };
-
-    class SACCritic : public rlop::SACCritic {
-    public:
-        SACCritic(Int num_critics, Int observation_dim, Int action_dim) {
-            q_nets_.reserve(num_critics);
-            for (Int i=0; i<num_critics; ++i) {
-                q_nets_.emplace_back(
-                    torch::nn::Linear(observation_dim + action_dim, 256),
-                    torch::nn::ReLU(),
-                    torch::nn::Linear(256, 256),
-                    torch::nn::ReLU(),
-                    torch::nn::Linear(256, 1)
-                );
-                register_module("q_net_" + std::to_string(i), q_nets_[i]);
-            }
-        }
-
-        void Reset() override {}
-
-        std::vector<torch::Tensor> Forward(const torch::Tensor& observations, const torch::Tensor& actions) override {
-            std::vector<torch::Tensor> q_values;
-            q_values.reserve(q_nets_.size()); 
-            torch::Tensor input = torch::cat({observations, actions}, 1);
-            for (Int i=0; i<q_nets_.size(); ++i) {
-                q_values.push_back(q_nets_[i]->forward(input).flatten());
-            }
-            return q_values;
-        }
-
-    private:
-        std::vector<torch::nn::Sequential> q_nets_;
+        torch::nn::Linear mu_{nullptr};
+        torch::nn::Linear log_std_{nullptr};
+        Int observation_dim_;
+        Int action_dim_;
+        Int num_critics_;
     };
 }

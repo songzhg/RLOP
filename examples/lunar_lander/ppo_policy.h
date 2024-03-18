@@ -32,6 +32,7 @@ namespace lunar_lander {
         }
 
         void Reset() override {
+            rlop::PPOPolicy::Reset();
             for (auto& module : action_mlp_->modules()) {
                 rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
             }
@@ -51,7 +52,7 @@ namespace lunar_lander {
             return action_net_->forward(latent_pi);
         }
 
-        torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = true) override {
+        torch::Tensor PredictActions(const torch::Tensor& observations, bool deterministic = false) override {
             torch::Tensor logits = PredictActionLogits(observations);
             rlop::Categorical dist(logits);
             if (deterministic)

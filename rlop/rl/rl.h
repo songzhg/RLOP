@@ -21,7 +21,7 @@ namespace rlop {
 
         virtual ~RL() = default;
 
-        // Pure virtual function to return the number of environments being managed by this RL instance.
+        // Pure virtual function to return the number of sub-environment in the vector environment.
         virtual Int NumEnvs() const = 0;
 
         // Pure virtual function to reset the environment to its initial state.
@@ -89,7 +89,7 @@ namespace rlop {
             log_items_["num_updates"] = torch::Tensor();
         }
 
-        // Checks if the search should continue.
+        // Checks if the algorithm should continue.
         virtual bool Proceed() {
             return time_steps_ < max_time_steps_;
         }
@@ -105,7 +105,8 @@ namespace rlop {
                 Train();
                 Monitor();
                 Checkpoint();
-                Update();
+                OnLearnStep();
+                ++num_iters_;
             }
         }
 
@@ -126,9 +127,7 @@ namespace rlop {
                 Save(output_path_ + "_" + rlop::GetDatetime() + "_" + std::to_string(time_steps_) + ".pth");
         }
 
-        virtual void Update() {
-            ++num_iters_;
-        }
+        virtual void OnLearnStep() {}
 
         // Prints the current loggable metrics to the console.
         virtual void PrintLog() const {

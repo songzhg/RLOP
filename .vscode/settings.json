@@ -80,6 +80,9 @@
         "__functional_base": "cpp",
         "__memory": "cpp",
         "future": "cpp",
-        "locale": "cpp"
+        "locale": "cpp",
+        "typeindex": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp"
     }
 }

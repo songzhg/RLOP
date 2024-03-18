@@ -61,8 +61,8 @@ namespace snake {
             score_stack_.Reset();
         }
 
-        std::unique_ptr<rlop::ReplayBuffer> MakeReplayBuffer() const override {
-            return std::make_unique<rlop::ReplayBuffer>(
+        std::shared_ptr<rlop::ReplayBuffer> MakeReplayBuffer() const override {
+            return std::make_shared<rlop::ReplayBuffer>(
                     replay_buffer_capacity_, 
                     problem_.num_problems(), 
                     problem_.observation_sizes(),
@@ -72,8 +72,8 @@ namespace snake {
                 );
         }
 
-        std::unique_ptr<rlop::QNet> MakeQNet() const override {
-            return std::make_unique<QNet>(replay_buffer_->observation_sizes(), problem_.NumActions());
+        std::shared_ptr<rlop::RLPolicy> MakePolicy() const override {
+            return std::make_shared<DQNPolicy>(replay_buffer_->observation_sizes(), problem_.NumActions());
         }
 
         torch::Tensor SampleActions() override {
@@ -136,8 +136,8 @@ namespace snake {
             return { next_observations, rewards, terminations, truncations, terminal_observations };
         }
 
-        void Update() override {
-            rlop::DQN::Update();
+        void OnCollectRolloutStep() override {
+            rlop::DQN::OnCollectRolloutStep();
             eps_ = linear_fn_(time_steps_ / (double)max_time_steps_); 
         }
 

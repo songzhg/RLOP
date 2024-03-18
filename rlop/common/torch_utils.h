@@ -38,14 +38,35 @@ namespace rlop::torch_utils {
     //
     // Returns:
     //   A pair consisting of a vector of parameter names and a vector of parameter tensors.
-    inline std::pair<std::vector<std::string>, std::vector<torch::Tensor>> GetParameters(const torch::nn::Module& model) {
+    inline std::pair<std::vector<std::string>, std::vector<torch::Tensor>> GetParameters(const torch::nn::Module& module) {
         std::vector<std::string> names;
         std::vector<torch::Tensor> parameters;
-        for (const auto& param : model.named_parameters()) {
+        for (const auto& param : module.named_parameters()) {
             names.push_back(param.key());
             parameters.push_back(param.value());
         }
         return { names, parameters };
+    }
+
+    // Retrieve tensors of parameters with certain names in a libtorch model.
+    //
+    // Parameters:
+    //   model: The model from which to retrieve parameters.
+    //   name: The names of parameter tensors.
+    //
+    // Returns:
+    //   A vector of parameter tensors.
+    inline std::vector<torch::Tensor> GetParametersByName(const torch::nn::Module& module, const std::vector<std::string>& names) {
+        std::vector<torch::Tensor> parameters;
+        for (const auto& param : module.named_parameters()) {
+            for (const auto& n : names) {
+                if (param.key().find(n) != std::string::npos) {
+                    parameters.push_back(param.value());
+                    break;
+                }
+            }
+        }
+        return parameters;
     }
 
     // Retrieves the names and tensors of all buffers in a libtorch model.
@@ -55,14 +76,35 @@ namespace rlop::torch_utils {
     //
     // Returns:
     //   A pair consisting of a vector of buffer names and a vector of buffer tensors.
-    inline std::pair<std::vector<std::string>, std::vector<torch::Tensor>> GetBuffers(const torch::nn::Module& model) {
+    inline std::pair<std::vector<std::string>, std::vector<torch::Tensor>> GetBuffers(const torch::nn::Module& module) {
         std::vector<std::string> names;
         std::vector<torch::Tensor> buffers;
-        for (const auto& buffer : model.named_buffers()) {
+        for (const auto& buffer : module.named_buffers()) {
             names.push_back(buffer.key());
             buffers.push_back(buffer.value());
         }
         return { names, buffers };
+    }
+
+    // Retrieve tensors of buffers with certain names in a libtorch model.
+    //
+    // Parameters:
+    //   model: The model from which to retrieve buffers.
+    //   name: The names of buffer tensors.
+    //
+    // Returns:
+    //   A vector of buffer tensors.
+    inline std::vector<torch::Tensor> GetBuffersByName(const torch::nn::Module& module, const std::vector<std::string>& names) {
+        std::vector<torch::Tensor> buffers;
+        for (const auto& buffer : module.named_buffers()) {
+            for (const auto& n : names) {
+                if (buffer.key().find(n) != std::string::npos) {
+                    buffers.push_back(buffer.value());
+                    break;
+                }
+            }
+        }
+        return buffers;
     }
 
     // Applies Polyak averaging to update target parameters towards source parameters.
@@ -75,10 +117,9 @@ namespace rlop::torch_utils {
         tau = std::clamp(tau, 0.0, 1.0);
         torch::NoGradGuard no_grad;
         for (size_t i = 0; i < params.size(); ++i) {
-            if (i >= target_params.size()) {
+            if (i >= target_params.size())
                 throw std::runtime_error("PolyakUpdate: mismatch in the number of parameters and target parameters");
-            }
-            target_params[i].mul_(1 - tau).add_(params[i], tau);
+            target_params[i].mul_(1.0 - tau).add_(params[i], tau);
         }
     }
 
@@ -188,8 +229,15 @@ namespace rlop::torch_utils {
         }
     }
 
-    inline void PrintTensorValue(const torch::Tensor& tensor, Int precision = 8) {
-        std::cout << std::fixed << std::setprecision(precision);
+    inline void PrintTensorValue(const torch::Tensor& tensor, Int precision = -1) {
+        if (precision < 0) {
+            if (tensor.dtype() == torch::kFloat32 || tensor.dtype() == torch::kFloat) 
+                std::cout << std::fixed << std::setprecision(std::numeric_limits<float>::max_digits10);
+            else if (tensor.dtype() == torch::kFloat64 || tensor.dtype() == torch::kDouble)
+                std::cout << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
+        }
+        else
+            std::cout << std::fixed << std::setprecision(precision); 
         if (tensor.numel() == 1)
             std::cout << tensor.item<double>() << std::endl;
         else {
@@ -203,7 +251,7 @@ namespace rlop::torch_utils {
         }
     }
 
-    inline void PrintTensor(const torch::Tensor& tensor, Int precision = 8) {
+    inline void PrintTensor(const torch::Tensor& tensor, Int precision = 10) {
         PrintTensorValue(tensor, precision);
         std::cout << "[" << tensor.toString() << tensor.sizes() << "]" << std::endl;
     }

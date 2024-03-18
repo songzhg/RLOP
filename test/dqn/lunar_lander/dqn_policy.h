@@ -20,13 +20,27 @@ namespace lunar_lander {
             register_module("mlp", mlp_);
         }
 
-        void Reset() override {}
-
-        torch::Tensor Forward(const torch::Tensor& observations) override {
+        torch::Tensor PredictQValues(const torch::Tensor& observations) override {
             return mlp_->forward(observations);
         }
 
     private:
         torch::nn::Sequential mlp_;
+    };
+
+    class DQNPolicy : public rlop::DQNPolicy {
+    public:
+        DQNPolicy(Int observation_dim, Int num_actions) :
+            observation_dim_(observation_dim),
+            num_actions_(num_actions)
+        {}
+
+        std::shared_ptr<rlop::QNet> MakeQNet() const override {
+            return std::make_shared<QNet>(observation_dim_, num_actions_);
+        }
+
+    private:
+        Int observation_dim_;
+        Int num_actions_;
     };
 }

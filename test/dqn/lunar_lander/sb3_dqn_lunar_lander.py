@@ -19,7 +19,7 @@ def make_env(env_id: str, rank: int, seed: int = 0) -> Callable:
 if __name__ == '__main__':
     env_id = "LunarLander-v2"
     num_cpu = 16
-    n_timesteps = 1e6
+    n_timesteps = 5e6
     n_experiments = 20
     path = 'data/dqn/lunar_lander/sb3'
     
@@ -44,7 +44,8 @@ if __name__ == '__main__':
                 exploration_final_eps=0.1,
                 max_grad_norm=10,
                 device='cuda',
-                tensorboard_log=path
+                tensorboard_log=path,
+                seed=i
                 )
         start_time = time.time()
         model.learn(total_timesteps=n_timesteps)
@@ -52,6 +53,7 @@ if __name__ == '__main__':
         model.save(path + '_' + str(i) +  '.pth')
         
         # eval_env = gym.make(env_id, render_mode='human')
+        env.seed(i)
         mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
         with open(path + '_eval.txt', 'a') as f:
             print(str(mean_reward) + '\t' + str(std_reward) + '\t' + str(duration), file=f)

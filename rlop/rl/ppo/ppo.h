@@ -45,16 +45,16 @@ namespace rlop {
         virtual ~PPO() = default;
 
         // Factory method to create and return a unique pointer to a RolloutBuffer object.
-        virtual std::unique_ptr<RolloutBuffer> MakeRolloutBuffer() const = 0; 
+        virtual std::shared_ptr<RolloutBuffer> MakeRolloutBuffer() const = 0; 
 
         // Factory method to create and return a unique pointer to a PPOPolicy object.
-        virtual std::unique_ptr<PPOPolicy> MakePPOPolicy() const = 0;
+        virtual std::shared_ptr<PPOPolicy> MakePolicy() const = 0;
        
         virtual void Reset() override {
             RL::Reset();
             rollout_buffer_ = MakeRolloutBuffer();
-            policy_ = MakePPOPolicy();
-            policy_->to(device_);
+            policy_ = MakePolicy();
+            policy_->To(device_);
             policy_->Reset();
             optimizer_ = MakeOptimizer();
             last_observations_ = ResetEnv();
@@ -79,16 +79,17 @@ namespace rlop {
         }
 
         virtual void CollectRollouts() override {
-            policy_->eval(); 
+            policy_->SetTrainingMode(false);
             torch::NoGradGuard no_grad;
             rollout_buffer_->Reset();
             while (!rollout_buffer_->full()) {
                 auto [ actions, values, log_probs ] = policy_->Forward(last_observations_.to(device_));
                 auto [next_observations, rewards, terminations, truncations, terminal_observations] = Step(actions);
-                torch::Tensor dones = torch::logical_or(terminations, truncations).to(torch::get_default_dtype());
+                time_steps_ += rollout_buffer_->num_envs();
+                torch::Tensor dones = torch::logical_or(terminations, truncations);
                 if (terminal_observations.defined()) {
                     for (Int i=0; i<rollout_buffer_->num_envs(); ++i) {
-                        if (dones[i].item<bool>() && !truncations[i].item<bool>()) {
+                        if (terminations[i].item<bool>()) {
                             torch::Tensor terminal_value = policy_->PredictValues(terminal_observations[i].unsqueeze(0).to(device_))[0];
                             rewards[i] += gamma_ * terminal_value.to(rewards.device());
                         }
@@ -97,33 +98,32 @@ namespace rlop {
                 rollout_buffer_->Add(last_observations_, actions, values, log_probs, rewards, last_episode_starts_);
                 last_observations_ = next_observations;
                 last_episode_starts_ = dones;
-                time_steps_ += NumEnvs();
             }
             torch::Tensor values = policy_->PredictValues(last_observations_.to(device_));
             rollout_buffer_->UpdateGAE(values, last_episode_starts_, gamma_, gae_lambda_);
         }
 
         virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) {
-            return policy_->Predict(observation.to(device_), deterministic, state, episode_start);
+            return policy_->Predict(observation, deterministic, state, episode_start);
         }
     
         virtual void Train() override {
             Int num_steps = rollout_buffer_->Size() * rollout_buffer_->num_envs() / batch_size_;
-            std::vector<torch::Tensor> ratio_list;
-            std::vector<torch::Tensor> policy_loss_list;
-            std::vector<torch::Tensor> value_loss_list;
-            std::vector<torch::Tensor> entropy_loss_list;
-            std::vector<torch::Tensor> loss_list;
-            std::vector<torch::Tensor> approx_kl_list;
-            Int reserved_size = num_epochs_*(num_steps + 1);
-            ratio_list.reserve(reserved_size);
-            policy_loss_list.reserve(reserved_size);
-            value_loss_list.reserve(reserved_size);
-            entropy_loss_list.reserve(reserved_size);
-            loss_list.reserve(reserved_size);
-            approx_kl_list.reserve(reserved_size);
+            std::vector<double> ratio_list;
+            std::vector<double> policy_loss_list;
+            std::vector<double> value_loss_list;
+            std::vector<double> entropy_loss_list;
+            std::vector<double> loss_list;
+            std::vector<double> approx_kl_list;
+            Int size = num_epochs_*(num_steps + 1);
+            ratio_list.reserve(size);
+            policy_loss_list.reserve(size);
+            value_loss_list.reserve(size);
+            entropy_loss_list.reserve(size);
+            loss_list.reserve(size);
+            approx_kl_list.reserve(size);
             bool continue_training = true;
-            policy_->train();
+            policy_->SetTrainingMode(true);
             for (Int epoch=0; epoch<num_epochs_; ++epoch) {
                 for (Int step =0; step<=num_steps; ++step) {
                     auto batch = rollout_buffer_->Get(batch_size_).To(device_);
@@ -158,14 +158,14 @@ namespace rlop {
                     }
                     optimizer_->zero_grad();
                     loss.backward();
-                    torch::nn::utils::clip_grad_norm_(policy_.get()->parameters(), max_grad_norm_);
+                    torch::nn::utils::clip_grad_norm_(policy_->parameters(), max_grad_norm_);
                     optimizer_->step();
-                    ratio_list.push_back(std::move(ratio.detach())); 
-                    policy_loss_list.push_back(std::move(policy_loss.detach())); 
-                    value_loss_list.push_back(std::move(value_loss.detach())); 
-                    entropy_loss_list.push_back(std::move(entropy_loss.detach())); 
-                    approx_kl_list.push_back(torch::tensor(approx_kl_div));
-                    loss_list.push_back(std::move(loss.detach())); 
+                    ratio_list.push_back(ratio.mean().item<double>()); 
+                    policy_loss_list.push_back(policy_loss.item<double>()); 
+                    value_loss_list.push_back(value_loss.item<double>()); 
+                    entropy_loss_list.push_back(entropy_loss.item<double>()); 
+                    approx_kl_list.push_back(approx_kl_div);
+                    loss_list.push_back(loss.item<double>()); 
                 }
                 ++num_updates_;
                 if (!continue_training)
@@ -177,22 +177,22 @@ namespace rlop {
                     it->second = torch::tensor(num_updates_);
                 it = log_items_.find("ratio");
                 if (it != log_items_.end()) 
-                    it->second = torch::stack(ratio_list).mean();
+                    it->second = torch::tensor(ratio_list).mean();
                 it = log_items_.find("policy_loss");
                 if (it != log_items_.end()) 
-                    it->second  = torch::stack(policy_loss_list).mean();
+                    it->second  = torch::tensor(policy_loss_list).mean();
                 it = log_items_.find("value_loss");
                 if (it != log_items_.end()) 
-                    it->second  = torch::stack(value_loss_list).mean();
+                    it->second  = torch::tensor(value_loss_list).mean();
                 it = log_items_.find("entropy_loss");
                 if (it != log_items_.end()) 
-                    it->second  = torch::stack(entropy_loss_list).mean();
+                    it->second  = torch::tensor(entropy_loss_list).mean();
                 it = log_items_.find("loss");
                 if (it != log_items_.end()) 
-                    it->second  = torch::stack(loss_list).mean();
+                    it->second  = torch::tensor(loss_list).mean();
                 it = log_items_.find("approx_kl");
                 if (it != log_items_.end()) 
-                    it->second  = torch::stack(approx_kl_list).mean();
+                    it->second  = torch::tensor(approx_kl_list).mean();
                 it = log_items_.find("variance");
                 if (it != log_items_.end()) 
                     it->second  = torch_utils::ExplainedVariance(rollout_buffer_->values().flatten(), rollout_buffer_->returns().flatten());
@@ -205,17 +205,13 @@ namespace rlop {
         virtual void LoadArchive(torch::serialize::InputArchive* archive, const std::unordered_set<std::string>& names) override {
             if (names.count("all") || names.count("actor_critic_net")) {
                 torch::serialize::InputArchive net_archive;
-                if (archive->try_read("actor_critic_net", net_archive)) {
-                    archive->read("actor_critic_net", net_archive);
+                if (archive->try_read("actor_critic_net", net_archive))
                     policy_->load(net_archive);
-                }
             }
             if (names.count("all") || names.count("optimizer")) {
                 torch::serialize::InputArchive optimizer_archive;
-                if (archive->try_read("optimizer", optimizer_archive)) {
-                    archive->read("optimizer", optimizer_archive);
+                if (archive->try_read("optimizer", optimizer_archive))
                     optimizer_->load(optimizer_archive);
-                }
             }
             if (names.count("all") || names.count("hparams")) {
                 torch::Tensor tensor;
@@ -284,15 +280,15 @@ namespace rlop {
             }
         }
 
-        const std::unique_ptr<RolloutBuffer>& rollout_buffer() const {
+        std::shared_ptr<RolloutBuffer> rollout_buffer() const {
             return rollout_buffer_;
         }
 
-        const std::unique_ptr<PPOPolicy>& policy() const {
+        std::shared_ptr<PPOPolicy> policy() const {
             return policy_;
         }
 
-        const std::unique_ptr<torch::optim::Optimizer>& optimizer() const {
+        std::shared_ptr<torch::optim::Optimizer> optimizer() const {
             return optimizer_;
         }
 
@@ -309,9 +305,9 @@ namespace rlop {
         double gae_lambda_;
         double max_grad_norm_;
         double target_kl_;
-        std::unique_ptr<RolloutBuffer> rollout_buffer_ = nullptr;
-        std::unique_ptr<PPOPolicy> policy_ = nullptr;
-        std::unique_ptr<torch::optim::Optimizer> optimizer_ = nullptr;
+        std::shared_ptr<RolloutBuffer> rollout_buffer_ = nullptr;
+        std::shared_ptr<PPOPolicy> policy_ = nullptr;
+        std::shared_ptr<torch::optim::Optimizer> optimizer_ = nullptr;
         torch::Tensor last_observations_;
         torch::Tensor last_episode_starts_;
     };

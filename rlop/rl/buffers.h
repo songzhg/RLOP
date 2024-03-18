@@ -35,7 +35,7 @@ namespace rlop {
             return pos_;
         }
 
-        torch::Tensor SwapAndFlatten(const torch::Tensor& tensor) {
+        static torch::Tensor SwapAndFlatten(const torch::Tensor& tensor) {
             if (tensor.sizes().size() < 3) 
                 return tensor.transpose(0, 1).flatten();
             std::vector<Int> sizes(tensor.sizes().begin()+1, tensor.sizes().end());
@@ -118,28 +118,25 @@ namespace rlop {
             const std::vector<Int>& action_sizes,
             torch::Dtype observation_type = torch::kFloat32,
             torch::Dtype action_type = torch::kFloat32,
-            const torch::Device& device = torch::kCPU,
-            bool optimize_memory_usage = false
+            const torch::Device& device = torch::kCPU
         ) :
             RLBuffer(
-                std::max(buffer_capacity / num_envs, Int(1)), 
+                std::max((Int)(buffer_capacity / num_envs), Int(1)), 
                 num_envs, 
                 observation_sizes, 
                 action_sizes,
                 observation_type,
                 action_type, 
                 device
-            ),
-            optimize_memory_usage_(optimize_memory_usage)
+            )
         {
-            std::vector<Int> observations_sizes = { buffer_size_, num_envs };
-            std::vector<Int> actions_sizes = { buffer_size_, num_envs };
-            observations_sizes.insert(observations_sizes.end(), observation_sizes_.begin(), observation_sizes_.end());
-            actions_sizes.insert(actions_sizes.end(), action_sizes_.begin(), action_sizes_.end()); 
-            observations_ = torch::zeros(observations_sizes, observation_type_).to(device_);
-            actions_ = torch::zeros(actions_sizes, action_type_).to(device_);
-            if (!optimize_memory_usage_)
-                next_observations_ = torch::zeros(observations_sizes, observation_type_).to(device_);
+            std::vector<Int> observation_buffer_sizes = { buffer_size_, num_envs };
+            std::vector<Int> action_buffer_sizes = { buffer_size_, num_envs };
+            observation_buffer_sizes.insert(observation_buffer_sizes.end(), observation_sizes_.begin(), observation_sizes_.end());
+            action_buffer_sizes.insert(action_buffer_sizes.end(), action_sizes_.begin(), action_sizes_.end()); 
+            observations_ = torch::zeros(observation_buffer_sizes, observation_type_).to(device_);
+            actions_ = torch::zeros(action_buffer_sizes, action_type_).to(device_);
+            next_observations_ = torch::zeros(observation_buffer_sizes, observation_type_).to(device_);
             rewards_ = torch::zeros({ buffer_size_, num_envs }).to(device_);
             dones_ = torch::zeros({ buffer_size_, num_envs }).to(device_);
         }
@@ -148,23 +145,14 @@ namespace rlop {
 
         virtual Batch Sample(Int batch_size) {
             Batch batch;
-            torch::Tensor batch_indices;
-            torch::Tensor env_indices = torch::randint(0, num_envs_, {batch_size});
-            if (optimize_memory_usage_) {
-                if (full_)
-                    batch_indices = (torch::randint(1, buffer_size_, {batch_size}) + pos_) % buffer_size_;
-                else 
-                    batch_indices = torch::randint(0, pos_, {batch_size});
-                batch.next_observations = observations_.index({ (batch_indices + 1) % buffer_size_, env_indices, "..."});
-            }
-            else {
-                batch_indices = torch::randint(0, Size(), {batch_size});
-                batch.next_observations = next_observations_.index({ batch_indices, env_indices, "..."});
-            }
-            batch.observations = observations_.index({ batch_indices, env_indices, "..."});
-            batch.actions = actions_.index({ batch_indices, env_indices, "..."});
-            batch.rewards = rewards_.index({ batch_indices, env_indices});
-            batch.dones = dones_.index({ batch_indices, env_indices});
+            torch::Tensor batch_indices = torch::randint(0, Size(), {batch_size}).to(device_);
+            torch::Tensor env_indices = torch::randint(0, num_envs_, {batch_size}).to(device_);
+            torch::Tensor indices = torch::arange(0, num_envs_* batch_size, num_envs_, torch::kInt64).to(device_) + env_indices;
+            batch.next_observations = SwapAndFlatten(next_observations_.index_select(0, batch_indices)).index_select(0, indices);
+            batch.observations = SwapAndFlatten(observations_.index_select(0, batch_indices)).index_select(0, indices);
+            batch.actions = SwapAndFlatten(actions_.index_select(0, batch_indices)).index_select(0, indices);
+            batch.rewards = SwapAndFlatten(rewards_.index_select(0, batch_indices)).index_select(0, indices);
+            batch.dones = SwapAndFlatten(dones_.index_select(0, batch_indices)).index_select(0, indices);
             return batch;
         }
 
@@ -175,14 +163,11 @@ namespace rlop {
             const torch::Tensor& rewards,
             const torch::Tensor& dones
         ) {
-            observations_[pos_] = observations.to(device_);
-            actions_[pos_] = actions.to(device_);
-            if (optimize_memory_usage_)
-                observations_[(pos_ + 1) % buffer_size_] = next_observations.to(device_); 
-            else
-                next_observations_[pos_] = next_observations.to(device_);
-            rewards_[pos_] = rewards.to(device_);
-            dones_[pos_] = dones.to(device_);
+            observations_[pos_].copy_(observations);
+            actions_[pos_].copy_(actions);
+            next_observations_[pos_].copy_(next_observations);
+            rewards_[pos_].copy_(rewards);
+            dones_[pos_].copy_(dones);
             pos_ += 1;
             if (pos_ >= buffer_size_) {
                 full_ = true;
@@ -210,7 +195,6 @@ namespace rlop {
             full_ = tensor.item<bool>();
             tensor = torch::Tensor();
             archive->read("optimize_memory_usage", tensor);
-            optimize_memory_usage_ = tensor.item<bool>();
             observation_sizes_ = observations_.sizes().vec();
             action_sizes_ = actions_.sizes().vec();
             observation_type_ = observations_.scalar_type();
@@ -231,11 +215,6 @@ namespace rlop {
             archive->write("dones", dones_);
             archive->write("pos", torch::tensor(pos_));
             archive->write("full", torch::tensor(full_));
-            archive->write("optimize_memory_usage", torch::tensor(optimize_memory_usage_));
-        }
-
-        bool optimize_memory_usage() const {
-            return optimize_memory_usage_;
         }
 
         const torch::Tensor& observations() const {
@@ -259,7 +238,6 @@ namespace rlop {
         }
 
     protected:
-        bool optimize_memory_usage_ = false;
         torch::Tensor observations_;
         torch::Tensor actions_;
         torch::Tensor next_observations_;
@@ -344,12 +322,12 @@ namespace rlop {
             }
             Batch batch;
             torch::Tensor indices = indices_.slice(0, start_i_, start_i_ + batch_size);
-            batch.observations = torch::index_select(observations_, 0, indices); 
-            batch.actions = torch::index_select(actions_, 0, indices); 
-            batch.values = torch::index_select(values_, 0, indices); 
-            batch.log_prob = torch::index_select(log_probs_, 0, indices); 
-            batch.advantages = torch::index_select(advantages_, 0, indices); 
-            batch.returns = torch::index_select(returns_, 0, indices);  
+            batch.observations = observations_.index_select(0, indices); 
+            batch.actions = actions_.index_select(0, indices); 
+            batch.values = values_.index_select(0, indices); 
+            batch.log_prob = log_probs_.index_select(0, indices); 
+            batch.advantages = advantages_.index_select(0, indices); 
+            batch.returns = returns_.index_select(0, indices);  
             start_i_+=batch_size;
             if (start_i_ >= data_size)
                 start_i_ = 0;
@@ -364,12 +342,12 @@ namespace rlop {
             const torch::Tensor& rewards,
             const torch::Tensor& episode_starts
         ) {
-            observations_[pos_] = observations.to(device_);
-            actions_[pos_] = actions.to(device_);
-            values_[pos_] = values.to(device_);
-            log_probs_[pos_] = log_prob.to(device_);
-            rewards_[pos_] = rewards.to(device_);
-            episode_starts_[pos_] = episode_starts.to(device_);
+            observations_[pos_].copy_(observations);
+            actions_[pos_].copy_(actions);
+            values_[pos_].copy_(values);
+            log_probs_[pos_].copy_(log_prob);
+            rewards_[pos_].copy_(rewards);
+            episode_starts_[pos_].copy_(episode_starts);
             pos_ += 1;
             if (pos_ >= buffer_size_) {
                 full_ = true;
@@ -381,11 +359,11 @@ namespace rlop {
             torch::Tensor last_gae_lam = torch::zeros(num_envs_).to(device_);
             Int size = Size();
             for (Int i=size-1; i>=0; --i) {
-                torch::Tensor next_non_terminal = i == size - 1? 1.0 - dones.to(device_) : 1.0 - episode_starts_[i+1];
+                torch::Tensor next_non_terminal = i == size - 1? 1.0 - dones.to(advantages_.dtype()).to(device_) : 1.0 - episode_starts_[i+1];
                 torch::Tensor next_values = i == size - 1? last_values.to(device_) : values_[i+1]; 
                 torch::Tensor delta = rewards_[i] + gamma * next_values * next_non_terminal - values_[i];
                 last_gae_lam = delta + gamma * gae_lambda * next_non_terminal * last_gae_lam;
-                advantages_[i] = last_gae_lam;
+                advantages_[i].copy_(last_gae_lam);
             }
             returns_ = advantages_ + values_;
         }

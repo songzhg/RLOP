@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     rlop::Timer timer;
 
     Int num_cpu = 16;
-    Int num_time_steps = 1e6;
+    Int num_time_steps = 5e6;
     Int num_experiments = 20;
     std::string path = "data/dqn/lunar_lander/rlop";
 

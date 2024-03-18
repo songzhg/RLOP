@@ -49,8 +49,8 @@ namespace lunar_lander {
             env_ = rlop::GymVectorEnv("LunarLander-v2", num_envs, "async", kwargs);
         }
 
-        std::unique_ptr<rlop::RolloutBuffer> MakeRolloutBuffer() const override {
-            return std::make_unique<rlop::RolloutBuffer>(
+        std::shared_ptr<rlop::RolloutBuffer> MakeRolloutBuffer() const override {
+            return std::make_shared<rlop::RolloutBuffer>(
                 num_steps_, 
                 env_.num_envs(),
                 rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.observation_shape()),
@@ -60,8 +60,8 @@ namespace lunar_lander {
             );
         }
 
-        std::unique_ptr<rlop::PPOPolicy> MakePPOPolicy() const override {
-            return std::make_unique<PPOPolicy>(rollout_buffer_->observation_sizes()[0], py::cast<Int>(env_.single_action_space().attr("n")));
+        std::shared_ptr<rlop::PPOPolicy> MakePolicy() const override {
+            return std::make_shared<PPOPolicy>(rollout_buffer_->observation_sizes()[0], py::cast<Int>(env_.single_action_space().attr("n")));
         }
 
         Int NumEnvs() const override {
@@ -74,25 +74,34 @@ namespace lunar_lander {
         }
 
         std::array<torch::Tensor, 5> Step(const torch::Tensor& actions) override {
-            auto [observations, rewards, terminations, truncations, infos] = env_.Step(rlop::pybind11_utils::TensorToArray(actions)); 
-            torch::Tensor next_observations = rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(observations));
-            torch::Tensor final_observations = torch::zeros_like(next_observations);
+            auto [observation_py, rewards_array, termination_array, truncation_array, infos] = env_.Step(rlop::pybind11_utils::TensorToArray(actions)); 
+            torch::Tensor observations = rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(observation_py));
+            torch::Tensor rewards = rlop::pybind11_utils::ArrayToTensor(rewards_array);
+            torch::Tensor terminations = rlop::pybind11_utils::ArrayToTensor(termination_array);
+            torch::Tensor truncations = rlop::pybind11_utils::ArrayToTensor(truncation_array);
+            torch::Tensor final_observations = torch::zeros_like(observations);
             if (infos.contains("final_observation")) {
-                Int i=0;
+                int i=0;
                 auto observation_array = infos["final_observation"];
                 for (const auto& obs : observation_array) {
                     if (!obs.is_none()) 
-                        final_observations[i] = rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(obs));
+                        final_observations[i].copy_(rlop::pybind11_utils::ArrayToTensor(py::cast<py::array>(obs)));
+                    else if (terminations[i].item<bool>() || truncations[i].item<bool>())
+                        throw;
                     ++i;
                 }
             }
             return { 
-                std::move(next_observations), 
-                std::move(rlop::pybind11_utils::ArrayToTensor(rewards)),
-                std::move(rlop::pybind11_utils::ArrayToTensor(terminations)),
-                std::move(rlop::pybind11_utils::ArrayToTensor(truncations)),
-                std::move(final_observations)
+                observations, 
+                rewards,
+                terminations,
+                truncations,
+                final_observations
             };
+        }
+
+        const rlop::GymVectorEnv& env() const {
+            return env_;
         }
 
     protected:

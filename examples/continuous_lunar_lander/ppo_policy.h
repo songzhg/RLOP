@@ -34,6 +34,7 @@ namespace continuous_lunar_lander {
         }
 
         void Reset() override {
+            rlop::PPOPolicy::Reset();
             for (auto& module : action_mlp_->modules()) {
                 rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
             }

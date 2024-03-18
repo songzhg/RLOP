@@ -119,13 +119,13 @@ namespace rlop::pybind11_utils {
     // Returns:
     //   py::array: A numpy array with the same data, data type, and shape as the PyTorch tensor.
     inline py::array TensorToArray(const torch::Tensor& tensor) {
-        torch::Tensor tensor_tmp = tensor.contiguous().cpu();
-        pybind11::dtype dtype = TensorDtypeToArrayDtype(tensor_tmp.scalar_type());
-        std::vector<ssize_t> shape = tensor_tmp.sizes().vec();
-        std::vector<ssize_t> strides = tensor_tmp.strides().vec();
+        torch::Tensor tmp = tensor.clone().contiguous().cpu();
+        pybind11::dtype dtype = TensorDtypeToArrayDtype(tmp.scalar_type());
+        std::vector<ssize_t> shape = tmp.sizes().vec();
+        std::vector<ssize_t> strides = tmp.strides().vec();
         for (auto& stride : strides) {
-            stride *= tensor_tmp.element_size();
+            stride *= tmp.element_size();
         }
-        return pybind11::array(dtype, shape, strides, tensor_tmp.data_ptr());
+        return pybind11::array(dtype, shape, strides, tmp.data_ptr());
     }
 }

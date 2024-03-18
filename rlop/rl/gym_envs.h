@@ -44,19 +44,28 @@ namespace rlop {
         virtual ~GymEnv() = default;
 
         virtual std::tuple<py::object, py::dict> Reset(const py::object& seed = py::none(), const py::object& options = py::none()) {
-            auto results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seed, py::arg("options")=options));
-            return { std::move(results[0]), std::move(py::cast<py::dict>(results[1])) };
+            py::tuple results;
+            if (seed.is_none() && !seed_) 
+                results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seed_, py::arg("options")=options));
+            else
+                results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seed, py::arg("options")=options));
+            seed_ = std::nullopt;
+            return { results[0], py::cast<py::dict>(results[1]) };
         }
 
         virtual std::tuple<py::object, py::float_, bool, bool, py::dict> Step(Int env_i, const py::object& action) {
             auto results = py::cast<py::tuple>(env_.attr("step")(action));
             return {
-                std::move(results[0]),
+                results[0],
                 py::cast<py::float_>(results[1]),
                 py::cast<bool>(results[2]),
                 py::cast<bool>(results[3]),
-                std::move(py::cast<py::dict>(results[4])),
+                py::cast<py::dict>(results[4]),
             };
+        }
+
+        virtual void Seed(uint64_t seed) {
+            seed_ = seed;
         }
 
         virtual py::object Render() {
@@ -97,6 +106,7 @@ namespace rlop {
         
     private:
         py::object env_;
+        std::optional<uint64_t> seed_;
     };
 
     // GymEnv is a class that encapsulates an vectorized Gymnasium environment, allowing C++ code to interface
@@ -133,22 +143,28 @@ namespace rlop {
         virtual ~GymVectorEnv() = default;
 
         virtual std::tuple<py::object, py::dict> Reset(const py::object& seed = py::none(), const py::object& options = py::none()) {
-            auto results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seed, py::arg("options")=options));
-            return { 
-                std::move(results[0]),
-                std::move(py::cast<py::dict>(results[1])),
-            };
+            py::tuple results;
+            if (seed.is_none() && !seeds_.empty())
+                results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seeds_, py::arg("options")=options));
+            else
+                results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seed, py::arg("options")=options));
+            seeds_.clear();
+            return { results[0], py::cast<py::dict>(results[1]) };
         }
 
         virtual std::tuple<py::object, py::array, py::array, py::array, py::dict> Step(const py::object& actions) {
             auto results = py::cast<py::tuple>(env_.attr("step")(actions));
             return {
-                std::move(results[0]),
-                std::move(py::cast<py::array>(results[1])),
-                std::move(py::cast<py::array>(results[2])),
-                std::move(py::cast<py::array>(results[3])),
-                std::move(py::cast<py::dict>(results[4])),
+                results[0],
+                py::cast<py::array>(results[1]),
+                py::cast<py::array>(results[2]),
+                py::cast<py::array>(results[3]),
+                py::cast<py::dict>(results[4]),
             };
+        }
+        
+        virtual void Seed(const std::vector<uint64_t>& seeds) {
+            seeds_ = seeds;
         }
 
         virtual void Close() {
@@ -198,5 +214,6 @@ namespace rlop {
     private:
         py::object env_;
         Int num_envs_;
+        std::vector<uint64_t> seeds_;
     };
 }

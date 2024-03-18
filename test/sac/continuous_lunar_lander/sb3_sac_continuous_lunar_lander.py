@@ -32,7 +32,7 @@ if __name__ == '__main__':
         model = SAC("MlpPolicy", env, verbose=1,
                 learning_rate=3e-4,
                 buffer_size=50000,
-                learning_starts=100,
+                learning_starts=0, #100,
                 batch_size=256,
                 tau=0.01,
                 gamma=0.99,

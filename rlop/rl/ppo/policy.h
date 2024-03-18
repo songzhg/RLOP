@@ -46,5 +46,16 @@ namespace rlop {
         //     - [1]: The predicted value of the current state.
         //     - [2]: The log probability of the recommended action.
         virtual std::array<torch::Tensor, 3> Forward(const torch::Tensor& observations) = 0;
+
+        virtual void Reset() override {
+            this->to(device_);
+        }
+
+        virtual void SetTrainingMode(bool mode) override {
+            if (mode)
+                this->train();
+            else
+                this->eval();
+        }
     };
 }

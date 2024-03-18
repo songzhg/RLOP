@@ -10,6 +10,8 @@ namespace rlop {
 
         virtual void Reset() = 0;
 
+        virtual void SetTrainingMode(bool mode) = 0;
+
         // Pure virtual function to predict the action for a given state (or observation).
         //
         // Parameters:
@@ -56,9 +58,16 @@ namespace rlop {
         //     - [0]: The model's action recommended by the policy for the given observation.
         //     - [1]: The next hidden state (used in recurrent policies)
         virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) {
-            this->eval();
+            SetTrainingMode(false);
             torch::NoGradGuard no_grad;
-            return { PredictActions(observation, deterministic), torch::Tensor() };
+            return { PredictActions(observation.to(device_), deterministic), torch::Tensor() };
         }
+
+        void To(const torch::Device& device) {
+            device_ = device;
+        }
+
+    protected:
+        torch::Device device_ = torch::kCPU;
     };
 }

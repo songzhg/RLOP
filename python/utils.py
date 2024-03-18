@@ -60,4 +60,4 @@ def tensorboard_to_csv(path):
                 row.append(value)
             writer.writerow(row)
 
-csv_to_line_chart('data/sac/continuous_lunar_lander/rlop_14_log.txt')
+csv_to_line_chart('data/dqn/lunar_lander/rlop_7_log.txt')

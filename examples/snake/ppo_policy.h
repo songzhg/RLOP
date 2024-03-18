@@ -29,6 +29,7 @@ namespace snake {
         }
 
         void Reset() override {
+            rlop::PPOPolicy::Reset();
             for (auto& module : feature_extractor_->modules()) {
                 rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
             }

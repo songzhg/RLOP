@@ -24,9 +24,7 @@ namespace snake {
             register_module("mlp", mlp_);
         }
 
-        void Reset() override {}
-
-        torch::Tensor Forward(const torch::Tensor& observations) override {
+        torch::Tensor PredictQValues(const torch::Tensor& observations) override {
             torch::Tensor features = feature_extractor_->forward(observations);
             return mlp_->forward(features);
         }
@@ -34,5 +32,21 @@ namespace snake {
     private:
         torch::nn::Sequential feature_extractor_;
         torch::nn::Sequential mlp_;
+    };
+
+    class DQNPolicy : public rlop::DQNPolicy {
+    public:
+        DQNPolicy(const std::vector<Int>& observation_sizes, Int num_actions) :
+            observation_sizes_(observation_sizes),
+            num_actions_(num_actions)
+        {}
+
+        std::shared_ptr<rlop::QNet> MakeQNet() const override {
+            return std::make_shared<QNet>(observation_sizes_, num_actions_);
+        }
+
+    private:
+        std::vector<Int> observation_sizes_;
+        Int num_actions_;
     };
 }

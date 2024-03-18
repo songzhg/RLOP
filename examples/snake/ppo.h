@@ -60,8 +60,8 @@ namespace snake {
             score_stack_.Reset();
         }
         
-        std::unique_ptr<rlop::RolloutBuffer> MakeRolloutBuffer() const override {
-            return std::make_unique<rlop::RolloutBuffer>(
+        std::shared_ptr<rlop::RolloutBuffer> MakeRolloutBuffer() const override {
+            return std::make_shared<rlop::RolloutBuffer>(
                     num_steps_, 
                     problem_.num_problems(), 
                     problem_.observation_sizes(),
@@ -71,10 +71,8 @@ namespace snake {
                 );
         }
 
-        std::unique_ptr<rlop::PPOPolicy> MakePPOPolicy() const override {
-            auto ret = std::make_unique<PPOPolicy>(rollout_buffer_->observation_sizes(), problem_.NumActions());
-            ret->Reset();
-            return ret;
+        std::shared_ptr<rlop::PPOPolicy> MakePolicy() const override {
+            return std::make_shared<PPOPolicy>(rollout_buffer_->observation_sizes(), problem_.NumActions());
         }
 
         Int NumEnvs() const override {
@@ -98,7 +96,7 @@ namespace snake {
             std::vector<torch::Tensor> terminated_list(problem_.num_problems());
             std::vector<torch::Tensor> score_list(problem_.num_problems());
             std::vector<torch::Tensor> terminal_obseravtion_list(problem_.num_problems());
-            // #pragma omp parallel for
+            #pragma omp parallel for
             for (Int i=0; i<problem_.num_problems(); ++i) {
                 Int num_foods = problem_.engines()[i].snakes()[0].num_foods;
                 if (!problem_.Step(i, { problem_.GetAction(action[i].item<Int>()) })) {
