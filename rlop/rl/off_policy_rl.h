@@ -4,6 +4,7 @@
 #include "policy.h"
 
 namespace rlop {
+    // The base class for Off-Policy algorithms (ex: SAC/DQN).
     class OffPolicyRL : public RL {
     public:
         OffPolicyRL(
@@ -41,6 +42,18 @@ namespace rlop {
             last_observations_ = ResetEnv();
         }
 
+        // Stores a transition in the replay buffer. This method updates the replay buffer
+        // with the information about the current state, action taken, the resulting new state,
+        // and the reward received. It also handles the case where an episode ends due to termination
+        // or truncation by using the final observation for the next state.
+        //
+        // Parameters:
+        //   actions: The actions taken by the agent in the current state.
+        //   new_observations: The observations of the new state after taking the actions.
+        //   rewards: The rewards received for taking the actions.
+        //   terminations: A tensor indicating whether the episode has terminated.
+        //   truncations: A tensor indicating whether the episode was truncated.
+        //   final_observations: The observations of the final state when the episode ends.
         virtual void StoreTransition(
             const torch::Tensor& actions, 
             const torch::Tensor& new_observations, 
@@ -61,6 +74,8 @@ namespace rlop {
             last_observations_ = new_observations;
         }
 
+        // A callback function for DQN, check if the target network should be updated
+        // and update the exploration schedule
         virtual void OnCollectRolloutStep() {}
 
         virtual void CollectRollouts() override {

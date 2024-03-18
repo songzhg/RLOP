@@ -44,10 +44,10 @@ namespace rlop {
 
         virtual ~PPO() = default;
 
-        // Factory method to create and return a unique pointer to a RolloutBuffer object.
+        // Factory method to create and return a unique pointer to a rollout buffer.
         virtual std::shared_ptr<RolloutBuffer> MakeRolloutBuffer() const = 0; 
 
-        // Factory method to create and return a unique pointer to a PPOPolicy object.
+        // Factory method to create and return a unique pointer to a PPO policy.
         virtual std::shared_ptr<PPOPolicy> MakePolicy() const = 0;
        
         virtual void Reset() override {

@@ -42,8 +42,7 @@ namespace rlop {
             });
         }
 
-        // Get the policy action from an observation (and optional hidden state). Includes sugar-coating to handle different observations
-        // (e.g. normalizing images).
+        // Get the policy action from an observation (and optional hidden state). Includes sugar-coating to handle different observations.
         //
         // Parameters:
         // observation: the input observation
