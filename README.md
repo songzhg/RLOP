@@ -68,11 +68,11 @@ RLOP implements several benchmark problems and provides examples demonstrating h
 
 ## Examples
 
-| **Problem**                                                               | **Algorithms/Methods** |
-| ---------------------------                                               | ----------------------|
-| [Lunar Lander](examples/lunar_lander/README.md)                           |   DQN, PPO  |
-| [Continuous Lunar Lander](examples/continuous_lunar_lander/README.md)     |   PPO, SAC  |
-| [Snake](examples/snake/README.md)                                         |   MCTS, DQN, PPO  |
-| [Connect4](examples/connect4/README.md)                                   |   Alpha-beta Search, MCTS |
-| [VRP](examples/vrp/README.md)                                             |   Insertion, Local Search, Tabu Search, Simulated Annealling |
-| [Multi-armed bandit](examples/multi_armed_bandit/README.md)               |   UCB1, Epsilon-greedy, Softmax, ... |
+| **Problem**                                                      | **Algorithms/Methods** |
+| ---------------------------                                      | ----------------------|
+| [Lunar Lander](examples/lunar_lander/)                           |   DQN, PPO  |
+| [Continuous Lunar Lander](examples/continuous_lunar_lander/)     |   PPO, SAC  |
+| [Snake](examples/snake/)                                         |   MCTS, DQN, PPO  |
+| [Connect4](examples/connect4/)                                   |   Alpha-beta Search, MCTS |
+| [VRP](examples/vrp/)                                             |   Insertion, Local Search, Tabu Search, Simulated Annealling |
+| [Multi-armed bandit](examples/multi_armed_bandit/)               |   UCB1, Epsilon-greedy, Softmax, ... |
