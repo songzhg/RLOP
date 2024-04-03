@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
 
     Int num_cpu = 16;
     Int num_time_steps = 1e6;
-    Int num_experiments = 20;
+    Int num_experiments = 100;
     std::string path = "data/sac/continuous_lunar_lander/rlop";
 
     std::ofstream out(path + "_eval.txt");

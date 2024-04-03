@@ -20,7 +20,7 @@ if __name__ == '__main__':
     env_id = "LunarLanderContinuous-v2"
     num_cpu = 16
     n_timesteps = 1e6
-    n_experiments = 20
+    n_experiments = 100
     path = 'data/ppo/continuous_lunar_lander/sb3'
     
     with open(path + '_eval.txt', 'w') as f:

@@ -65,9 +65,7 @@ namespace snake {
                     num_steps_, 
                     problem_.num_problems(), 
                     problem_.observation_sizes(),
-                    problem_.action_sizes(),
-                    torch::kFloat32,
-                    torch::kInt64 
+                    problem_.action_sizes()
                 );
         }
 

@@ -272,8 +272,6 @@ namespace rlop {
             Int num_envs, 
             const std::vector<Int>& observation_sizes, 
             const std::vector<Int>& action_sizes,
-            const torch::Dtype& obs_type = torch::kFloat32,
-            const torch::Dtype& action_type = torch::kFloat32,
             const torch::Device& device = torch::kCPU
         ) :
             RLBuffer(
@@ -281,8 +279,8 @@ namespace rlop {
                 num_envs, 
                 observation_sizes, 
                 action_sizes,
-                obs_type,
-                action_type, 
+                torch::kFloat32,
+                torch::kFloat32, 
                 device
             ),
             observation_buffer_sizes_({ num_steps, num_envs }),
@@ -298,8 +296,8 @@ namespace rlop {
             RLBuffer::Reset();
             start_i_ = 0;
             generator_ready_ = false;
-            observations_ = torch::zeros(observation_buffer_sizes_, observation_type_).to(device_);
-            actions_ = torch::zeros(action_buffer_sizes_, action_type_).to(device_);
+            observations_ = torch::zeros(observation_buffer_sizes_).to(device_);
+            actions_ = torch::zeros(action_buffer_sizes_).to(device_);
             values_ = torch::zeros({ buffer_size_, num_envs_}).to(device_);
             log_probs_ = torch::zeros({ buffer_size_, num_envs_ }).to(device_);
             advantages_ = torch::zeros({ buffer_size_, num_envs_ }).to(device_);
