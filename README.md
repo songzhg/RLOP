@@ -61,18 +61,18 @@ RLOP implements several benchmark problems and provides examples demonstrating h
 | MCTS/PUCT                             |   Search |  [Coulom 2006](https://hal.inria.fr/inria-00116992/document), [UCT paper](http://ggp.stanford.edu/readings/uct.pdf), [PUCT paper](https://discovery.ucl.ac.uk/id/eprint/10045895/1/agz_unformatted_nature.pdf) |
 | Root-parallel MCTS/PUCT               |   Search |  [Chaslot et al. 2008](https://dke.maastrichtuniversity.nl/m.winands/documents/multithreadedMCTS2.pdf) |
 | Alpha-beta Search                     |   Search |  [Wikipedia](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning), [Negamax](https://en.wikipedia.org/wiki/Negamax) |
-| Alpha-beta Search with Tranposition   |  Search  |  [ChessProgramming](https://www.chessprogramming.org/Transposition_Table)  |
+| Alpha-beta Search with Transposition   |  Search  |  [ChessProgramming](https://www.chessprogramming.org/Transposition_Table)  |
 | Local Search                          |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Local_search_(optimization))  |
 | Tabu Search                           |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Tabu_search#:~:text=Tabu%20search%20(TS)%20is%20a,1986%20and%20formalized%20in%201989.), [Glover et al. 1999](https://www.researchgate.net/publication/220693571_Tabu_search_I)  |
 | Simulated Annealing                   |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Simulated_annealing), [Scott et al. 1983](https://www.researchgate.net/publication/6026283_Optimization_by_Simulated_Annealing) |
 
 ## Examples
 
-| **Problem**                                                               | **Algorithms/Methods** |
-| ---------------------------                                               | ----------------------|
-| [Lunar Lander](examples/lunar_lander/README.md)                           |   DQN, PPO  |
-| [Continuous Lunar Lander](examples/continuous_lunar_lander/README.md)     |   PPO, SAC  |
-| [Snake](examples/snake/README.md)                                         |   MCTS, DQN, PPO  |
-| [Connect4](examples/connect4/README.md)                                   |   Alpha-beta Search, MCTS |
-| [VRP](examples/vrp/README.md)                                             |   Insertion, Local Search, Tabu Search, Simulated Annealling |
-| [Multi-armed bandit](examples/multi_armed_bandit/README.md)               |   UCB1, Epsilon-greedy, Softmax, ... |
+| **Problem**                                                      | **Algorithms/Methods** |
+| ---------------------------                                      | ----------------------|
+| [Lunar Lander](examples/lunar_lander/)                           |   DQN, PPO  |
+| [Continuous Lunar Lander](examples/continuous_lunar_lander/)     |   PPO, SAC  |
+| [Snake](examples/snake/)                                         |   MCTS, DQN, PPO  |
+| [Connect4](examples/connect4/)                                   |   Alpha-beta Search, MCTS |
+| [VRP](examples/vrp/)                                             |   Insertion, Local Search, Tabu Search, Simulated Annealling |
+| [Multi-armed bandit](examples/multi_armed_bandit/)               |   UCB1, Epsilon-greedy, Softmax, ... |
