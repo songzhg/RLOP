@@ -11,6 +11,21 @@ RLOP implements state-of-art algorithms in reinforcement learning, optimization,
   
 - **Domain-independent**: Algorithms are fully encapsulated within a class, abstracting away domain-specific details by defining interface functions, rather than directly accessing information from problem-specific classes.
 
+## Implemented Algorithms
+
+| **Algorithm**                         | **Type** |  **Reference** |
+| ---------------------------           | ---------|  -------------|
+| DQN                                   |   RL     |  [Mnih et al. 2015](https://www.nature.com/articles/nature14236) |
+| PPO                                   |   RL     |  [Schulman et al. 2018](https://arxiv.org/abs/1707.06347)        |
+| SAC                                   |   RL     |  [Haarnoja et al. 2018](https://arxiv.org/abs/1801.01290)        |
+| MCTS/PUCT                             |   Search |  [Coulom 2006](https://hal.inria.fr/inria-00116992/document), [UCT paper](http://ggp.stanford.edu/readings/uct.pdf), [PUCT paper](https://discovery.ucl.ac.uk/id/eprint/10045895/1/agz_unformatted_nature.pdf) |
+| Root-parallel MCTS/PUCT               |   Search |  [Chaslot et al. 2008](https://dke.maastrichtuniversity.nl/m.winands/documents/multithreadedMCTS2.pdf) |
+| Alpha-beta Search                     |   Search |  [Wikipedia](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning), [Negamax](https://en.wikipedia.org/wiki/Negamax) |
+| Alpha-beta Search with Transposition   |  Search  |  [ChessProgramming](https://www.chessprogramming.org/Transposition_Table)  |
+| Local Search                          |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Local_search_(optimization))  |
+| Tabu Search                           |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Tabu_search#:~:text=Tabu%20search%20(TS)%20is%20a,1986%20and%20formalized%20in%201989.), [Glover et al. 1999](https://www.researchgate.net/publication/220693571_Tabu_search_I)  |
+| Simulated Annealing                   |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Simulated_annealing), [Scott et al. 1983](https://www.researchgate.net/publication/6026283_Optimization_by_Simulated_Annealing) |
+
 ## Installation
 
 RLOP is a Header-Only C++ framework, so it does not require compiling or linking against precompiled binaries. To use this library in your project, follow these steps:
@@ -49,22 +64,6 @@ This framework is built on C++17 and above. Ensure you have a C++ compiler that 
 ## Run Examples
 
 RLOP implements several benchmark problems and provides examples demonstrating how to solve these problems using the algorithms within RLOP. For the requirements and running method of each examples, please refer to the links in the table of [Examples](#examples) below. 
-  
-  
-## Implemented Algorithms
-
-| **Algorithm**                         | **Type** |  **Reference** |
-| ---------------------------           | ---------|  -------------|
-| DQN                                   |   RL     |  [Mnih et al. 2015](https://www.nature.com/articles/nature14236) |
-| PPO                                   |   RL     |  [Schulman et al. 2018](https://arxiv.org/abs/1707.06347)        |
-| SAC                                   |   RL     |  [Haarnoja et al. 2018](https://arxiv.org/abs/1801.01290)        |
-| MCTS/PUCT                             |   Search |  [Coulom 2006](https://hal.inria.fr/inria-00116992/document), [UCT paper](http://ggp.stanford.edu/readings/uct.pdf), [PUCT paper](https://discovery.ucl.ac.uk/id/eprint/10045895/1/agz_unformatted_nature.pdf) |
-| Root-parallel MCTS/PUCT               |   Search |  [Chaslot et al. 2008](https://dke.maastrichtuniversity.nl/m.winands/documents/multithreadedMCTS2.pdf) |
-| Alpha-beta Search                     |   Search |  [Wikipedia](https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning), [Negamax](https://en.wikipedia.org/wiki/Negamax) |
-| Alpha-beta Search with Transposition   |  Search  |  [ChessProgramming](https://www.chessprogramming.org/Transposition_Table)  |
-| Local Search                          |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Local_search_(optimization))  |
-| Tabu Search                           |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Tabu_search#:~:text=Tabu%20search%20(TS)%20is%20a,1986%20and%20formalized%20in%201989.), [Glover et al. 1999](https://www.researchgate.net/publication/220693571_Tabu_search_I)  |
-| Simulated Annealing                   |  Opt     |  [Wikipedia](https://en.wikipedia.org/wiki/Simulated_annealing), [Scott et al. 1983](https://www.researchgate.net/publication/6026283_Optimization_by_Simulated_Annealing) |
 
 ## Examples
 
