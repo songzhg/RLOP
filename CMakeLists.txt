@@ -53,7 +53,7 @@ if(BUILD_MULTI_ARMED_BANDIT)
     add_subdirectory(examples/multi_armed_bandit)
 endif()
 
-# add_subdirectory(test/dqn/lunar_lander)
+add_subdirectory(test/dqn/lunar_lander)
 # add_subdirectory(test/ppo/lunar_lander)
 # add_subdirectory(test/sac/continuous_lunar_lander)
 # add_subdirectory(test/ppo/continuous_lunar_lander)

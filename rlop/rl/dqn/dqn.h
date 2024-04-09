@@ -46,9 +46,9 @@ namespace rlop {
             num_calls_ = 0;
         }
 
-        // Factory method to create an optimizer for the Q-network. By default, uses the RMSprop optimizer.
+        // Factory method to create an optimizer for the Q-network. By default, uses the Adam optimizer.
         virtual std::unique_ptr<torch::optim::Optimizer> MakeOptimizer() const {
-            return std::make_unique<torch::optim::RMSprop>(policy()->q_net()->parameters(), torch::optim::RMSpropOptions(lr_));
+            return std::make_unique<torch::optim::Adam>(policy()->q_net()->parameters(), torch::optim::AdamOptions(lr_));
         }
 
         virtual void RegisterLogItems() override {

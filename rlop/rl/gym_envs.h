@@ -148,7 +148,7 @@ namespace rlop {
                 results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seeds_, py::arg("options")=options));
             else
                 results = py::cast<py::tuple>(env_.attr("reset")(py::arg("seed")=seed, py::arg("options")=options));
-            seeds_.clear();
+            seeds_ = py::list();
             return { results[0], py::cast<py::dict>(results[1]) };
         }
 
@@ -164,7 +164,10 @@ namespace rlop {
         }
         
         virtual void Seed(const std::vector<uint64_t>& seeds) {
-            seeds_ = seeds;
+            seeds_ = py::list();
+            for (auto& seed : seeds) {
+                seeds_.append(seed);
+            }
         }
 
         virtual void Close() {
@@ -214,6 +217,6 @@ namespace rlop {
     private:
         py::object env_;
         Int num_envs_;
-        std::vector<uint64_t> seeds_;
+        py::list seeds_;
     };
 }
