@@ -229,30 +229,32 @@ namespace rlop::torch_utils {
         }
     }
 
-    inline void PrintTensorValue(const torch::Tensor& tensor, Int precision = -1) {
-        if (precision < 0) {
-            if (tensor.dtype() == torch::kFloat32 || tensor.dtype() == torch::kFloat) 
-                std::cout << std::fixed << std::setprecision(std::numeric_limits<float>::max_digits10);
-            else if (tensor.dtype() == torch::kFloat64 || tensor.dtype() == torch::kDouble)
-                std::cout << std::fixed << std::setprecision(std::numeric_limits<double>::max_digits10);
-        }
-        else
-            std::cout << std::fixed << std::setprecision(precision); 
-        if (tensor.numel() == 1)
-            std::cout << tensor.item<double>() << std::endl;
-        else {
-            for (int64_t i = 0; i < tensor.size(0); ++i) {
-                if (tensor.dim() > 1) {
-                    PrintTensorValue(tensor[i], precision);
-                } else {
-                    std::cout << tensor[i].item<double>() << std::endl;
+    inline void PrintTensorHelper(const torch::Tensor& tensor, int precision = 8) {
+        std::cout << std::setprecision(precision);
+        if (tensor.dim() == 1) {
+            std::cout << "[";
+            for (int i = 0; i < tensor.size(0); ++i) {
+                std::cout << tensor[i].item<double>();
+                if (i != tensor.size(0) - 1) {
+                    std::cout << ", ";
                 }
             }
+            std::cout << "]";
+        } else {
+            std::cout << "[";
+            for (int i = 0; i < tensor.size(0); ++i) {
+                PrintTensorHelper(tensor[i], precision);
+                if (i != tensor.size(0) - 1) {
+                    std::cout << std::endl;
+                }
+            }
+            std::cout << "]";
         }
     }
 
-    inline void PrintTensor(const torch::Tensor& tensor, Int precision = 10) {
-        PrintTensorValue(tensor, precision);
+    inline void PrintTensor(const torch::Tensor& tensor, Int precision = 8) {
+        PrintTensorHelper(tensor, precision);
+        std::cout << std::endl;
         std::cout << "[" << tensor.toString() << tensor.sizes() << "]" << std::endl;
     }
 }

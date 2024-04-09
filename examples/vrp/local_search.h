@@ -8,25 +8,25 @@ namespace vrp {
         LocalSearch(const std::function<Int(Int, Int)>& get_cost, Int max_num_unimproved_iters = 50 ) : 
             rlop::TabuSearch<Int>(max_num_unimproved_iters),
             operator_space_(routes_),
-			cost_manager_(routes_, get_cost),
+            cost_manager_(routes_, get_cost),
             problem_(&routes_, &operator_space_, { &cost_manager_ })
         {}
 
         ~LocalSearch() = default;
 
-		void Reset(const Routes& routes) {
-			rlop::TabuSearch<Int>::Reset();
-			routes_ = routes;
-			operator_space_.Reset();
-			cost_manager_.Reset();
-		}
+        void Reset(const Routes& routes) {
+            rlop::TabuSearch<Int>::Reset();
+            routes_ = routes;
+            operator_space_.Reset();
+            cost_manager_.Reset();
+        }
 
-		void Reset(Routes&& routes) {
-			rlop::TabuSearch<Int>::Reset();
-			routes_ = std::move(routes);
-			operator_space_.Reset();
-			cost_manager_.Reset();
-		}
+        void Reset(Routes&& routes) {
+            rlop::TabuSearch<Int>::Reset();
+            routes_ = std::move(routes);
+            operator_space_.Reset();
+            cost_manager_.Reset();
+        }
 
         Int EvaluateSolution() override {
             return problem_.GetTotalCost();
@@ -67,9 +67,9 @@ namespace vrp {
 
     protected:
         Routes routes_;
-		Routes best_routes_;
-		ArcCostManager cost_manager_;
-		OperatorSpace operator_space_;
+        Routes best_routes_;
+        ArcCostManager cost_manager_;
+        OperatorSpace operator_space_;
         Problem problem_;
     };
 }

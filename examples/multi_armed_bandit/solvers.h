@@ -17,7 +17,7 @@ namespace multi_armed_bandit {
         virtual std::optional<Int> Select() = 0;
 
         virtual void Reset() {
-			problem_.Reset();
+            problem_.Reset();
             q_values_ = std::vector<double>(problem_.num_arms(), 0);
             num_visits_ = std::vector<Int>(problem_.num_arms(), 0);
         }
@@ -79,7 +79,7 @@ namespace multi_armed_bandit {
         
     protected:
         std::string name_;
-		Problem problem_;
+        Problem problem_;
         Int num_steps_ = 0;
         Int max_num_steps_ = 0;
         double alpha_;

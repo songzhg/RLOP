@@ -12,7 +12,7 @@ namespace vrp {
         ) : 
             rlop::TabuSearch<Int>(max_num_unimproved_iters),
             operator_space_(routes_),
-			cost_manager_(routes_, get_cost),
+            cost_manager_(routes_, get_cost),
             problem_(&routes_, &operator_space_, { &cost_manager_ }), 
             tenure_(tenure)
         {}
@@ -22,51 +22,51 @@ namespace vrp {
         void Reset() override {
             rlop::TabuSearch<Int>::Reset();
             tabu_table_.Reset();
-			routes_.Reset();
-			operator_space_.Reset();
-			cost_manager_.Reset();
+            routes_.Reset();
+            operator_space_.Reset();
+            cost_manager_.Reset();
         }
 
-		void Reset(const Routes& routes) {
-			rlop::TabuSearch<Int>::Reset();
+        void Reset(const Routes& routes) {
+            rlop::TabuSearch<Int>::Reset();
             tabu_table_.Reset();
-			routes_ = routes;
-			operator_space_.Reset();
-			cost_manager_.Reset();
-		}
+            routes_ = routes;
+            operator_space_.Reset();
+            cost_manager_.Reset();
+        }
 
-		void Reset(Routes&& routes) {
-			rlop::TabuSearch<Int>::Reset();
+        void Reset(Routes&& routes) {
+            rlop::TabuSearch<Int>::Reset();
             tabu_table_.Reset();
-			routes_ = std::move(routes);
-			operator_space_.Reset();
-			cost_manager_.Reset();
-		}
+            routes_ = std::move(routes);
+            operator_space_.Reset();
+            cost_manager_.Reset();
+        }
 
-         Int EvaluateSolution() override {
+        Int EvaluateSolution() override {
             return problem_.GetTotalCost();
         }
 
-         Int NumNeighbors() const override {
+        Int NumNeighbors() const override {
             return problem_.operator_space()->NumNeighbors();
         }
 
-         bool IsTabu(Int neighbor_i) override {
+        bool IsTabu(Int neighbor_i) override {
             const Operator* op = problem_.operator_space()->GetNeighbor(neighbor_i);
             return tabu_table_.IsTabu(problem_.EncodeOperator(*op));
         }
 
-         Int EvaluateNeighbor(Int neighbor_i) override {
+        Int EvaluateNeighbor(Int neighbor_i) override {
             const Operator* op = problem_.operator_space()->GetNeighbor(neighbor_i);
             return problem_.EvaluateDelta(*op) + problem_.GetTotalCost();;
         }
 
-         std::optional<Int> Select() override {
+        std::optional<Int> Select() override {
             problem_.operator_space()->GenerateNeighbors();
             return rlop::TabuSearch<Int>::Select();
         }
 
-         bool Step(const Int& neighbor_i) override {
+        bool Step(const Int& neighbor_i) override {
             const Operator* op = problem_.operator_space()->GetNeighbor(neighbor_i);
             if (!problem_.Step(*op))
                 return false;
@@ -74,11 +74,11 @@ namespace vrp {
             return true;
         }
 
-         void RecordSolution() override {
+        void RecordSolution() override {
             best_routes_ = *(problem_.routes());
         }
 
-         void Update() override {
+        void Update() override {
             rlop::TabuSearch<Int>::Update();
             tabu_table_.Update();
         }
@@ -98,9 +98,9 @@ namespace vrp {
     protected:
         Int tenure_;
         Routes routes_;
-		Routes best_routes_;
-		ArcCostManager cost_manager_;
-		OperatorSpace operator_space_;
+        Routes best_routes_;
+        ArcCostManager cost_manager_;
+        OperatorSpace operator_space_;
         Problem problem_;
         rlop::HashTabuTable<Int> tabu_table_;
     };

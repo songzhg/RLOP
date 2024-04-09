@@ -33,7 +33,7 @@ namespace vrp {
         virtual ~ArcCostManager() = default;
 
         virtual void Reset() override {
-            total_cost_ = ComputeTotalCost(*routes_, get_cost_);	
+            total_cost_ = ComputeTotalCost(*routes_, get_cost_);    
         }
         
         virtual void Reset(const Routes& routes) {
@@ -42,7 +42,7 @@ namespace vrp {
         }
 
         static Int ComputeTotalCost(const Routes& routes, const std::function<Int(Int, Int)>& get_cost) {
-            Int total_cost = 0;	
+            Int total_cost = 0;    
             for (Int ri=0; ri<routes.num_routes(); ++ri) {
                 total_cost += get_cost(routes.GetSentinel(ri), routes.GetStart(ri));
                 for (Int ni=routes.GetStart(ri); ni!=routes.GetSentinel(ri); ni=routes.GetNext(ni)) {
@@ -53,16 +53,16 @@ namespace vrp {
         }
 
         virtual Int EvaluateDelta(const Operator& op) const { 
-			if (op.GetType() == Operator::Type::kInsertion)
-				return EvaluateDelta(static_cast<const Insertion&>(op));		
-			else if (op.GetType() == Operator::Type::kSwap)
-				return EvaluateDelta(static_cast<const Swapping&>(op));
-			else if (op.GetType() == Operator::Type::kMoving)
-				return EvaluateDelta(static_cast<const Moving&>(op));	
-			else if (op.GetType() == Operator::Type::kTwoOpt)
-				return EvaluateDelta(static_cast<const TwoOpting&>(op));
-			return 0;
-		}
+            if (op.GetType() == Operator::Type::kInsertion)
+                return EvaluateDelta(static_cast<const Insertion&>(op));        
+            else if (op.GetType() == Operator::Type::kSwap)
+                return EvaluateDelta(static_cast<const Swapping&>(op));
+            else if (op.GetType() == Operator::Type::kMoving)
+                return EvaluateDelta(static_cast<const Moving&>(op));    
+            else if (op.GetType() == Operator::Type::kTwoOpt)
+                return EvaluateDelta(static_cast<const TwoOpting&>(op));
+            return 0;
+        }
 
         virtual Int EvaluateDelta(const Insertion& insert) const {
             if (!routes_->IsInsertable(insert.node(), insert.to_node()))
@@ -128,26 +128,26 @@ namespace vrp {
         }
 
         virtual void Step(const Operator& op) override {
-			if (op.GetType() == Operator::Type::kInsertion)
-				Step(static_cast<const Insertion&>(op));
-			else if (op.GetType() == Operator::Type::kSwap)
-				Step(static_cast<const Swapping&>(op));
-			else if (op.GetType() == Operator::Type::kMoving)
-				Step(static_cast<const Moving&>(op));
-			else if (op.GetType() == Operator::Type::kTwoOpt)
-				Step(static_cast<const TwoOpting&>(op));
-		}
+            if (op.GetType() == Operator::Type::kInsertion)
+                Step(static_cast<const Insertion&>(op));
+            else if (op.GetType() == Operator::Type::kSwap)
+                Step(static_cast<const Swapping&>(op));
+            else if (op.GetType() == Operator::Type::kMoving)
+                Step(static_cast<const Moving&>(op));
+            else if (op.GetType() == Operator::Type::kTwoOpt)
+                Step(static_cast<const TwoOpting&>(op));
+        }
 
-		virtual void Undo(const Operator& op) {
-			if (op.GetType() == Operator::Type::kInsertion)
-				Undo(static_cast<const Insertion&>(op));	
-			else if (op.GetType() == Operator::Type::kSwap)
-				Undo(static_cast<const Swapping&>(op));	
-			else if (op.GetType() == Operator::Type::kMoving)
-				Undo(static_cast<const Moving&>(op));	
-			else if (op.GetType() == Operator::Type::kTwoOpt)
-				Undo(static_cast<const TwoOpting&>(op));	
-		}
+        virtual void Undo(const Operator& op) {
+            if (op.GetType() == Operator::Type::kInsertion)
+                Undo(static_cast<const Insertion&>(op));    
+            else if (op.GetType() == Operator::Type::kSwap)
+                Undo(static_cast<const Swapping&>(op));    
+            else if (op.GetType() == Operator::Type::kMoving)
+                Undo(static_cast<const Moving&>(op));    
+            else if (op.GetType() == Operator::Type::kTwoOpt)
+                Undo(static_cast<const TwoOpting&>(op));    
+        }
 
         virtual void Step(const Insertion& insert) {
             Int last = routes_->GetLast(insert.node());

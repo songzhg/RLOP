@@ -514,5 +514,3 @@ namespace snake {
         sf::Clock clock_;
     };
 }
-
-
