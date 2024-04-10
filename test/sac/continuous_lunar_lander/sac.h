@@ -22,7 +22,8 @@ namespace continuous_lunar_lander {
             Int gradient_steps,
             Int target_update_interval,
             std::string output_path,
-            const torch::Device& device
+            const torch::Device& device,
+            uint64_t seed
         ) :
             rlop::SAC(
                 learning_starts,
@@ -45,6 +46,8 @@ namespace continuous_lunar_lander {
             if (render)
                 kwargs["render_mode"]  = "human";
             env_ = rlop::GymVectorEnv("LunarLanderContinuous-v2", num_envs, "async", kwargs);
+            env_.Seed(seed);
+            env_.single_action_space().attr("seed")(seed);
         }
 
         std::shared_ptr<rlop::ReplayBuffer> MakeReplayBuffer() const override {
@@ -71,7 +74,11 @@ namespace continuous_lunar_lander {
         }
 
         torch::Tensor SampleActions() override {
-            return rlop::pybind11_utils::ArrayToTensor(env_.action_space().attr("sample")());
+            std::vector<torch::Tensor> actions(env_.num_envs());
+            for (Int i=0; i<env_.num_envs(); ++i) {
+                actions[i] = rlop::pybind11_utils::ArrayToTensor(env_.single_action_space().attr("sample")());
+            }
+            return torch::stack(actions);
         }
 
         torch::Tensor ResetEnv() override {

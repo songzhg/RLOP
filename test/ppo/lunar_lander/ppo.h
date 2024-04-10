@@ -23,7 +23,8 @@ namespace lunar_lander {
             double max_grad_norm,
             double target_kl,
             std::string output_path,
-            torch::Device device
+            torch::Device device,
+            uint64_t seed
         ) :
             rlop::PPO(
                 batch_size,
@@ -47,6 +48,8 @@ namespace lunar_lander {
             if (render)
                 kwargs["render_mode"]  = "human";
             env_ = rlop::GymVectorEnv("LunarLander-v2", num_envs, "async", kwargs);
+            env_.Seed(seed);
+            env_.single_action_space().attr("seed")(seed);
         }
 
         std::shared_ptr<rlop::RolloutBuffer> MakeRolloutBuffer() const override {

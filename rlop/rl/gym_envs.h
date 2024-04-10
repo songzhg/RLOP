@@ -163,6 +163,13 @@ namespace rlop {
             };
         }
         
+        virtual void Seed(uint64_t seed) {
+            seeds_ = py::list();
+            for (Int i=0; i<num_envs_; ++i) {
+                seeds_.append(seed + i);
+            }    
+        }
+        
         virtual void Seed(const std::vector<uint64_t>& seeds) {
             seeds_ = py::list();
             for (auto& seed : seeds) {

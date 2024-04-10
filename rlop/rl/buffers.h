@@ -147,12 +147,11 @@ namespace rlop {
             Batch batch;
             torch::Tensor batch_indices = torch::randint(0, Size(), {batch_size}).to(device_);
             torch::Tensor env_indices = torch::randint(0, num_envs_, {batch_size}).to(device_);
-            torch::Tensor indices = torch::arange(0, num_envs_* batch_size, num_envs_, torch::kInt64).to(device_) + env_indices;
-            batch.next_observations = SwapAndFlatten(next_observations_.index_select(0, batch_indices)).index_select(0, indices);
-            batch.observations = SwapAndFlatten(observations_.index_select(0, batch_indices)).index_select(0, indices);
-            batch.actions = SwapAndFlatten(actions_.index_select(0, batch_indices)).index_select(0, indices);
-            batch.rewards = SwapAndFlatten(rewards_.index_select(0, batch_indices)).index_select(0, indices);
-            batch.dones = SwapAndFlatten(dones_.index_select(0, batch_indices)).index_select(0, indices);
+            batch.observations = observations_.index({batch_indices, env_indices, "..."}).clone();
+            batch.next_observations = next_observations_.index({batch_indices, env_indices, "..."}).clone();
+            batch.actions = actions_.index({batch_indices, env_indices, "..."}).clone();
+            batch.rewards = rewards_.index({batch_indices, env_indices, "..."}).clone();
+            batch.dones = dones_.index({batch_indices, env_indices, "..."}).clone();
             return batch;
         }
 

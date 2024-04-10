@@ -11,8 +11,10 @@ int main(int argc, char *argv[]) {
 
     Int num_cpu = 16;
     Int num_time_steps = 5e6;
-    Int num_experiments = 100;
+    Int num_experiments = 50;
     std::string path = "data/dqn/lunar_lander/rlop";
+
+    rlop::torch_utils::SetRandomSeed(0);
 
     std::ofstream out(path + "_eval.txt");
     for (Int i=0; i<num_experiments; ++i) {
@@ -33,13 +35,14 @@ int main(int argc, char *argv[]) {
             1, // gradient_steps
             250, // target_update_interval
             path + "_" + std::to_string(i), // output_path
-            torch::kCUDA // device
+            torch::kCUDA, // device
+            i
         );
         solver.Reset();
         timer.Restart();
         solver.Learn(num_time_steps, 1e3);
         timer.Stop();
-        solver.Save(path + "_" + std::to_string(i) + ".pth");
+        // solver.Save(path + "_" + std::to_string(i) + ".pth");
 
         rlop::RLEvaluator evaluator;
         evaluator.Reset();

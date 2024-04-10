@@ -23,7 +23,8 @@ namespace lunar_lander {
             Int gradient_steps,
             Int target_update_interval,
             std::string output_path,
-            const torch::Device& device
+            const torch::Device& device,
+            uint64_t seed
         ) :
             rlop::DQN(
                 learning_starts,
@@ -44,7 +45,9 @@ namespace lunar_lander {
             py::dict kwargs;
             if (render)
                 kwargs["render_mode"]  = "human";
-            env_ = rlop::GymVectorEnv("LunarLander-v2", num_envs, "async", kwargs);
+            env_ = rlop::GymVectorEnv("LunarLander-v2", num_envs, "sync", kwargs);
+            env_.Seed(seed);
+            env_.single_action_space().attr("seed")(seed);
             linear_fn_ = rlop::MakeLinearFn(initial_eps, final_eps, exploration_fraction);
         } 
 
@@ -73,7 +76,11 @@ namespace lunar_lander {
         }
 
         torch::Tensor SampleActions() override {
-            return rlop::pybind11_utils::ArrayToTensor(env_.action_space().attr("sample")());
+            std::vector<torch::Tensor> actions(env_.num_envs());
+            for (Int i=0; i<env_.num_envs(); ++i) {
+                actions[i] = rlop::pybind11_utils::ArrayToTensor(env_.single_action_space().attr("sample")());
+            }
+            return torch::stack(actions);
         }
 
         torch::Tensor ResetEnv() override {
