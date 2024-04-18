@@ -85,6 +85,7 @@ namespace rlop {
             while (!rollout_buffer_->full()) {
                 auto [ actions, values, log_probs ] = policy_->Forward(last_observations_.to(device_));
                 auto [next_observations, rewards, terminations, truncations, terminal_observations] = Step(actions);
+                rewards = rewards.to(torch::kFloat32);
                 time_steps_ += rollout_buffer_->num_envs();
                 torch::Tensor dones = torch::logical_or(terminations, truncations);
                 if (terminal_observations.defined()) {
@@ -108,14 +109,14 @@ namespace rlop {
         }
     
         virtual void Train() override {
-            Int num_steps = rollout_buffer_->Size() * rollout_buffer_->num_envs() / batch_size_;
+            Int num_steps = std::ceil(rollout_buffer_->Size() * rollout_buffer_->num_envs() / (double)batch_size_);
             std::vector<double> ratio_list;
             std::vector<double> policy_loss_list;
             std::vector<double> value_loss_list;
             std::vector<double> entropy_loss_list;
             std::vector<double> loss_list;
             std::vector<double> approx_kl_list;
-            Int size = num_epochs_*(num_steps + 1);
+            Int size = num_epochs_* num_steps;
             ratio_list.reserve(size);
             policy_loss_list.reserve(size);
             value_loss_list.reserve(size);
@@ -125,14 +126,15 @@ namespace rlop {
             bool continue_training = true;
             policy_->SetTrainingMode(true);
             for (Int epoch=0; epoch<num_epochs_; ++epoch) {
-                for (Int step =0; step<=num_steps; ++step) {
+                for (Int step =0; step<num_steps; ++step) {
                     auto batch = rollout_buffer_->Get(batch_size_).To(device_);
+                    auto advantages = batch.advantages;
                     auto [ values, log_prob, entropy ] = policy_->EvaluateActions(batch.observations, batch.actions);
-                    if (normalize_advantage_ && batch.advantages.sizes()[0] > 1)
-                        batch.advantages = (batch.advantages - batch.advantages.mean()) / (batch.advantages.std() + 1e-8);
+                    if (normalize_advantage_ && advantages.sizes()[0] > 1)
+                        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8);
                     torch::Tensor ratio = torch::exp(log_prob - batch.log_prob);
-                    torch::Tensor policy_loss_1 = batch.advantages * ratio;
-                    torch::Tensor policy_loss_2 = batch.advantages * torch::clamp(ratio, 1 - clip_range_, 1 + clip_range_);
+                    torch::Tensor policy_loss_1 = advantages * ratio;
+                    torch::Tensor policy_loss_2 = advantages * torch::clamp(ratio, 1 - clip_range_, 1 + clip_range_);
                     torch::Tensor policy_loss = -torch::min(policy_loss_1, policy_loss_2).mean();
                     torch::Tensor pred_value;
                     if (clip_range_vf_ > 0)

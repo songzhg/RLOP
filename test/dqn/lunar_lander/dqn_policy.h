@@ -8,15 +8,12 @@ namespace lunar_lander {
 
     class QNet : public rlop::QNet {
     public:
-        QNet(Int observation_dim, Int num_actions) :
-            mlp_(
-                torch::nn::Linear(observation_dim, 64),
-                torch::nn::ReLU(),
-                torch::nn::Linear(64, 64),
-                torch::nn::ReLU(),
-                torch::nn::Linear(64, num_actions)
-            )
-        {
+        QNet(Int observation_dim, Int num_actions) {
+            mlp_->push_back(torch::nn::Linear(observation_dim, 64));
+            mlp_->push_back(torch::nn::ReLU());
+            mlp_->push_back(torch::nn::Linear(64, 64));
+            mlp_->push_back(torch::nn::ReLU());
+            mlp_->push_back(torch::nn::Linear(64, num_actions));
             register_module("mlp", mlp_);
         }
 

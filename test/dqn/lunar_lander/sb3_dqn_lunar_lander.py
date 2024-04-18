@@ -20,7 +20,7 @@ if __name__ == '__main__':
         pass
     
     for i in range(n_experiments):
-        env = make_vec_env(env_id, seed=i, n_envs=num_cpu)
+        env = make_vec_env(env_id, seed=i, n_envs=num_cpu, vec_env_cls=SubprocVecEnv)
 
         model = DQN("MlpPolicy", env, verbose=1,
                 learning_rate=0.00063,

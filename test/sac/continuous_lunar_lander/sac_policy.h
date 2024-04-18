@@ -41,19 +41,15 @@ namespace continuous_lunar_lander {
         SACPolicy(Int observation_dim, Int action_dim, Int num_critics) :
             observation_dim_(observation_dim),
             action_dim_(action_dim),
-            num_critics_(num_critics),
-            latent_pi_(
-                torch::nn::Linear(observation_dim, 256),
-                torch::nn::ReLU(),
-                torch::nn::Linear(256, 256),
-                torch::nn::ReLU()
-            ),
-            mu_(torch::nn::Linear(256, action_dim)),
-            log_std_(torch::nn::Linear(256, action_dim))
+            num_critics_(num_critics)
         {
+            latent_pi_->push_back(torch::nn::Linear(observation_dim, 256));
+            latent_pi_->push_back(torch::nn::ReLU());
+            latent_pi_->push_back(torch::nn::Linear(256, 256));
+            latent_pi_->push_back(torch::nn::ReLU());
             register_module("latent_pi", latent_pi_);
-            register_module("mu", mu_);
-            register_module("log_std", log_std_);
+            mu_ = register_module("mu", torch::nn::Linear(256, action_dim));
+            log_std_ = register_module("log_std", torch::nn::Linear(256, action_dim));
         }
 
         std::shared_ptr<rlop::ContinuousQNet> MakeCritic() const override {

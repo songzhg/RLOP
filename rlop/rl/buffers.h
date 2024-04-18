@@ -271,6 +271,8 @@ namespace rlop {
             Int num_envs, 
             const std::vector<Int>& observation_sizes, 
             const std::vector<Int>& action_sizes,
+            torch::Dtype observation_type = torch::kFloat32,
+            torch::Dtype action_type = torch::kFloat32,
             const torch::Device& device = torch::kCPU
         ) :
             RLBuffer(
@@ -278,8 +280,8 @@ namespace rlop {
                 num_envs, 
                 observation_sizes, 
                 action_sizes,
-                torch::kFloat32,
-                torch::kFloat32, 
+                observation_type,
+                action_type, 
                 device
             ),
             observation_buffer_sizes_({ num_steps, num_envs }),
@@ -295,8 +297,8 @@ namespace rlop {
             RLBuffer::Reset();
             start_i_ = 0;
             generator_ready_ = false;
-            observations_ = torch::zeros(observation_buffer_sizes_).to(device_);
-            actions_ = torch::zeros(action_buffer_sizes_).to(device_);
+            observations_ = torch::zeros(observation_buffer_sizes_, observation_type_).to(device_);
+            actions_ = torch::zeros(action_buffer_sizes_, action_type_).to(device_);
             values_ = torch::zeros({ buffer_size_, num_envs_}).to(device_);
             log_probs_ = torch::zeros({ buffer_size_, num_envs_ }).to(device_);
             advantages_ = torch::zeros({ buffer_size_, num_envs_ }).to(device_);
@@ -306,9 +308,8 @@ namespace rlop {
         }
 
         virtual Batch Get(Int batch_size) {
-            Int data_size = Size() * num_envs_;
+            Int num_rollouts = Size() * num_envs_;
             if (!generator_ready_) {
-                indices_ = torch::randperm(data_size).to(device_);
                 observations_ = SwapAndFlatten(observations_);
                 actions_ = SwapAndFlatten(actions_);
                 values_ = SwapAndFlatten(values_);
@@ -317,6 +318,8 @@ namespace rlop {
                 returns_ = SwapAndFlatten(returns_);
                 generator_ready_ = true;
             }
+            if (start_i_ == 0)
+                indices_ = torch::randperm(num_rollouts).to(device_);
             Batch batch;
             torch::Tensor indices = indices_.slice(0, start_i_, start_i_ + batch_size);
             batch.observations = observations_.index_select(0, indices); 
@@ -324,9 +327,9 @@ namespace rlop {
             batch.values = values_.index_select(0, indices); 
             batch.log_prob = log_probs_.index_select(0, indices); 
             batch.advantages = advantages_.index_select(0, indices); 
-            batch.returns = returns_.index_select(0, indices);  
+            batch.returns = returns_.index_select(0, indices); 
             start_i_+=batch_size;
-            if (start_i_ >= data_size)
+            if (start_i_ >= num_rollouts) 
                 start_i_ = 0;
             return batch;
         }

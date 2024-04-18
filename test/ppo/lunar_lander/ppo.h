@@ -57,7 +57,9 @@ namespace lunar_lander {
                 num_steps_, 
                 env_.num_envs(),
                 rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.observation_shape()),
-                rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.action_shape())
+                rlop::pybind11_utils::ArrayShapeToTensorSizes(env_.action_shape()),
+                rlop::pybind11_utils::ArrayDtypeToTensorDtype(env_.observation_dtype()),
+                rlop::pybind11_utils::ArrayDtypeToTensorDtype(env_.action_dtype())
             );
         }
 

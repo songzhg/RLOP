@@ -71,7 +71,6 @@ int main(int argc, char *argv[]) {
         solver.Learn(num_time_steps, 1e3);
         timer.Stop();
         solver.Save("data/continuous_lunar_lander/rlop_sac.pth");
-        std::ofstream out("data/continuous_lunar_lander/rlop_sac_eval.txt");
 
         rlop::RLEvaluator evaluator;
         evaluator.Reset();

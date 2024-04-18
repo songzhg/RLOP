@@ -18,7 +18,7 @@ namespace rlop {
         DiagGaussian(const torch::Tensor& mean, const torch::Tensor& std) : mean_(mean), std_(std) {}
 
         virtual torch::Tensor Sample() const override {
-            torch::Tensor eps = torch::empty_like(std_).normal_();
+            torch::Tensor eps = torch::empty(mean_.sizes()).normal_().to(mean_.device());
             return eps * std_ + mean_;
         }
 
@@ -71,34 +71,36 @@ namespace rlop {
 
     class Categorical : public RLDistribution {
     public:
-        Categorical(const torch::Tensor& logits, double eps = 1e-8) : logits_(logits), prob_(torch_utils::LogitsToProbs(logits)), eps_(eps) {}
+        Categorical(const torch::Tensor& logits) : logits_(logits - logits.logsumexp(-1, true)), probs_(torch_utils::LogitsToProbs(logits_)) {}
 
         virtual torch::Tensor Sample() const override {
-            return torch::multinomial(prob_, 1).flatten();
+            return torch::multinomial(probs_, 1).flatten();
         }
 
         virtual torch::Tensor Mode() const override {
-            return std::get<1>(torch::max(prob_, -1));
-        }
-
-        virtual torch::Tensor LogProb() const {
-            if (!log_prob_.defined())
-                log_prob_ = torch::log(prob_ + eps_);
-            return log_prob_;
+            return std::get<1>(torch::max(probs_, -1));
         }
 
         virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
-            return torch::gather(LogProb(), 1, x.reshape({-1, 1})).flatten();
+            torch::Tensor value = x.to(torch::kInt64).unsqueeze(-1);
+            auto broadcasted = torch::broadcast_tensors({value, logits_});
+            value = broadcasted[0].index({"...", torch::indexing::Slice(0, 1)});
+            return broadcasted[1].gather(-1, value).squeeze(-1);
         }
 
-        virtual torch::Tensor Entropy() const override {
-            return -torch::sum(prob_ * LogProb(), -1);;
-        } 
+        torch::Tensor Entropy() const override {
+            double min_real = 0;
+            if (logits_.scalar_type() == c10::ScalarType::Float)
+                min_real = std::numeric_limits<float>::lowest();
+            else if (logits_.scalar_type() == c10::ScalarType::Double)
+                min_real = std::numeric_limits<double>::lowest();
+            torch::Tensor logits = torch::clamp(logits_, min_real);
+            torch::Tensor p_log_p = logits * probs_;
+            return -p_log_p.sum(-1);
+        }
 
     protected:
         torch::Tensor logits_;
-        torch::Tensor prob_;
-        mutable torch::Tensor log_prob_;
-        double eps_;
+        torch::Tensor probs_;
     };
 }

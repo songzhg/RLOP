@@ -33,18 +33,10 @@ namespace lunar_lander {
 
         void Reset() override {
             rlop::PPOPolicy::Reset();
-            for (auto& module : action_mlp_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
-            }
-            for (auto& module : value_mlp_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
-            }
-            for (auto& module : action_net_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), 0.01);
-            }
-            for (auto& module : value_net_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(1.0));
-            }
+            action_mlp_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, std::sqrt(2.0)); });
+            value_mlp_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, std::sqrt(2.0)); });
+            action_net_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, 0.01); });
+            value_net_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, 1.0); });
         }
 
         torch::Tensor PredictActionLogits(const torch::Tensor& observations) {

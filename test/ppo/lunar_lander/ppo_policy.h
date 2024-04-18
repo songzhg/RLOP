@@ -9,42 +9,27 @@ namespace lunar_lander {
 
     class PPOPolicy : public rlop::PPOPolicy {
     public:
-        PPOPolicy(Int observation_dim, Int num_actions) :
-            action_mlp_(
-                torch::nn::Linear(observation_dim, 64),
-                torch::nn::Tanh(),
-                torch::nn::Linear(64, 64),
-                torch::nn::Tanh()
-            ),
-            value_mlp_(
-                torch::nn::Linear(observation_dim, 64),
-                torch::nn::Tanh(),
-                torch::nn::Linear(64, 64),
-                torch::nn::Tanh()
-            ),
-            action_net_(torch::nn::Linear(64, num_actions)),
-            value_net_(torch::nn::Linear(64, 1))
-        {
+        PPOPolicy(Int observation_dim, Int num_actions) {
+            action_mlp_->push_back(torch::nn::Linear(observation_dim, 64));
+            action_mlp_->push_back(torch::nn::Tanh());
+            action_mlp_->push_back(torch::nn::Linear(64, 64));
+            action_mlp_->push_back(torch::nn::Tanh());
+            value_mlp_->push_back(torch::nn::Linear(observation_dim, 64));
+            value_mlp_->push_back(torch::nn::Tanh());
+            value_mlp_->push_back(torch::nn::Linear(64, 64));
+            value_mlp_->push_back(torch::nn::Tanh());
             register_module("action_mlp", action_mlp_);
             register_module("value_mlp", value_mlp_);
-            register_module("action_net", action_net_);
-            register_module("value_net", value_net_);
+            action_net_ = register_module("action_net", torch::nn::Linear(64, num_actions));
+            value_net_ = register_module("value_net", torch::nn::Linear(64, 1));
         }
 
         void Reset() override {
             rlop::PPOPolicy::Reset();
-            for (auto& module : action_mlp_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
-            }
-            for (auto& module : value_mlp_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(2.0));
-            }
-            for (auto& module : action_net_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), 0.01);
-            }
-            for (auto& module : value_net_->modules()) {
-                rlop::RLPolicy::InitWeights(module.get(), std::sqrt(1.0));
-            }
+            action_mlp_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, std::sqrt(2.0)); });
+            value_mlp_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, std::sqrt(2.0)); });
+            action_net_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, 0.01); });
+            value_net_->apply([](torch::nn::Module& module){ rlop::PPOPolicy::InitWeights(&module, 1.0); });
         }
 
         torch::Tensor PredictActionLogits(const torch::Tensor& observations) {
@@ -87,6 +72,7 @@ namespace lunar_lander {
     private:
         torch::nn::Sequential action_mlp_;
         torch::nn::Sequential value_mlp_;
-        torch::nn::Linear action_net_, value_net_;
+        torch::nn::Linear action_net_{nullptr};
+        torch::nn::Linear value_net_{nullptr};
     };
 }

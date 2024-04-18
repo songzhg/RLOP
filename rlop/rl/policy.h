@@ -28,18 +28,16 @@ namespace rlop {
         //   model: Pointer to the model.
         //   gain:  A scaling factor of weights .
         inline static void InitWeights(torch::nn::Module* module, double gain = 1.0) {
-            module->apply([gain](torch::nn::Module& m) {
-                if (auto* linear = m.as<torch::nn::Linear>()) {
-                    torch::nn::init::orthogonal_(linear->weight, gain);
-                    if (linear->bias.defined())
-                        torch::nn::init::constant_(linear->bias, 0.0);
-                }
-                else if (auto* conv2d = m.as<torch::nn::Conv2d>()) {
-                    torch::nn::init::orthogonal_(conv2d->weight, gain);
-                    if (conv2d->bias.defined())
-                        torch::nn::init::constant_(conv2d->bias, 0.0);
-                }
-            });
+            if (auto* linear = module->as<torch::nn::Linear>()) {
+                torch::nn::init::orthogonal_(linear->weight, gain);
+                if (linear->bias.defined())
+                    torch::nn::init::constant_(linear->bias, 0.0);
+            }
+            else if (auto* conv2d = module->as<torch::nn::Conv2d>()) {
+                torch::nn::init::orthogonal_(conv2d->weight, gain);
+                if (conv2d->bias.defined())
+                    torch::nn::init::constant_(conv2d->bias, 0.0);
+            }
         }
 
         // Get the policy action from an observation (and optional hidden state). Includes sugar-coating to handle different observations.
