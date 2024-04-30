@@ -11,7 +11,7 @@ if __name__ == '__main__':
     env_id = "LunarLanderContinuous-v2"
     num_cpu = 16
     n_timesteps = 1e6
-    n_experiments = 50
+    n_experiments = 5
     path = 'data/ppo/continuous_lunar_lander/sb3'
     
     set_random_seed(0)

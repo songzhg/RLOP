@@ -59,3 +59,30 @@ def tensorboard_to_csv(path):
                 value = scalars_data[tag][i].value if i < len(scalars_data[tag]) else None
                 row.append(value)
             writer.writerow(row)
+
+def plot_rlop_sb3(rlop_path, sb3_path, x_label, y_label, delimiter='\t'):
+    import pandas as pd
+    import matplotlib.pyplot as plt
+
+    rlop_data = pd.read_csv(rlop_path, delimiter=delimiter)
+    sb3_data = pd.read_csv(sb3_path, delimiter=delimiter)
+    
+    rlop_x = list(rlop_data[x_label['rlop']].to_numpy())
+    rlop_y = list(rlop_data[y_label['rlop']].to_numpy())
+    sb3_x = list(sb3_data[x_label['sb3']].to_numpy())
+    sb3_y = list(sb3_data[y_label['sb3']].to_numpy())
+
+    plt.figure(figsize=(12, 8))
+    plt.plot(sb3_x, sb3_y, marker='s', label='sb3')
+    plt.plot(rlop_x, rlop_y, marker='o', label='rlop')
+    plt.title('Compare')
+    plt.xlabel(x_label['rlop'])
+    plt.ylabel(y_label['rlop'])
+    plt.legend()
+    plt.show()
+
+# idx = 0
+# tensorboard_to_csv("data/dqn/lunar_lander/sb3/DQN_" + str(idx + 1))
+# rlop_path = "data/dqn/lunar_lander/rlop_" + str(idx) + "_log.txt"
+# sb3_path = "data/dqn/lunar_lander/sb3/DQN_" + str(idx + 1) + "/log.csv"
+# plot_rlop_sb3(rlop_path, sb3_path, x_label = { 'rlop': 'time_steps', 'sb3': 'step'}, y_label = { 'rlop': 'loss', 'sb3': 'train/loss'})

@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
 
     Int num_cpu = 16;
     Int num_time_steps = 1e6;
-    Int num_experiments = 50;
+    Int num_experiments = 5;
     std::string path = "data/sac/continuous_lunar_lander/rlop";
 
     rlop::torch_utils::SetRandomSeed(0);
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
         );
         solver.Reset();
         timer.Restart();
-        solver.Learn(num_time_steps, 1e3);
+        solver.Learn(num_time_steps, 1e2);
         timer.Stop();
         // solver.Save(path + "_" + std::to_string(i) + ".pth");
 

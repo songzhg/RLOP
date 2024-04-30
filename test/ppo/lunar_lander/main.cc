@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
 
     Int num_cpu = 16;
     Int num_time_steps = 1e6;
-    Int num_experiments = 50;
+    Int num_experiments = 5;
     std::string path = "data/ppo/lunar_lander/rlop";
 
     rlop::torch_utils::SetRandomSeed(0);

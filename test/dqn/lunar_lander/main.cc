@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
 
     Int num_cpu = 16;
     Int num_time_steps = 5e6;
-    Int num_experiments = 50;
+    Int num_experiments = 5;
     std::string path = "data/dqn/lunar_lander/rlop";
 
     rlop::torch_utils::SetRandomSeed(0);
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
             50000, // replay_buffer_capacity
             100, // learning_starts
             128, // batch_size
-            6.3e-4, // lr
+            5e-4, //6.3e-4, // lr
             1.0, // tau
             0.99, // gamma
             10, // max_grad_norm
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         );
         solver.Reset();
         timer.Restart();
-        solver.Learn(num_time_steps, 1e3);
+        solver.Learn(num_time_steps, 1e2);
         timer.Stop();
         // solver.Save(path + "_" + std::to_string(i) + ".pth");
 
