@@ -80,9 +80,3 @@ def plot_rlop_sb3(rlop_path, sb3_path, x_label, y_label, delimiter='\t'):
     plt.ylabel(y_label['rlop'])
     plt.legend()
     plt.show()
-
-# idx = 0
-# tensorboard_to_csv("data/dqn/lunar_lander/sb3/DQN_" + str(idx + 1))
-# rlop_path = "data/dqn/lunar_lander/rlop_" + str(idx) + "_log.txt"
-# sb3_path = "data/dqn/lunar_lander/sb3/DQN_" + str(idx + 1) + "/log.csv"
-# plot_rlop_sb3(rlop_path, sb3_path, x_label = { 'rlop': 'time_steps', 'sb3': 'step'}, y_label = { 'rlop': 'loss', 'sb3': 'train/loss'})

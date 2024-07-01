@@ -76,9 +76,11 @@ namespace rlop {
             log_items_["approx_kl"] = torch::Tensor();
             log_items_["variance"] = torch::Tensor();
             log_items_["return"] = torch::Tensor();
+            log_items_["mean_reward"] = torch::Tensor();
         }
 
         virtual void CollectRollouts() override {
+            std::vector<double> reward_list;
             policy_->SetTrainingMode(false);
             torch::NoGradGuard no_grad;
             rollout_buffer_->Reset();
@@ -96,12 +98,16 @@ namespace rlop {
                         }
                     }
                 }
+                reward_list.push_back(rewards.mean().item<double>());
                 rollout_buffer_->Add(last_observations_, actions, values, log_probs, rewards, last_episode_starts_);
                 last_observations_ = next_observations;
                 last_episode_starts_ = dones;
             }
             torch::Tensor values = policy_->PredictValues(last_observations_.to(device_));
             rollout_buffer_->UpdateGAE(values, last_episode_starts_, gamma_, gae_lambda_);
+            auto it = log_items_.find("mean_reward");
+            if (it != log_items_.end()) 
+                it->second  = torch::tensor(reward_list).mean();
         }
 
         virtual std::array<torch::Tensor, 2> Predict(const torch::Tensor& observation, bool deterministic = false, const torch::Tensor& state = torch::Tensor(), const torch::Tensor& episode_start = torch::Tensor()) {
