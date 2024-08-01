@@ -19,14 +19,20 @@ namespace rlop::torch_utils {
             auto name = val.key();
             if (target_params.contains(name)) {
                 auto* t_param = target_params.find(name);
-                t_param->copy_(val.value());
+                if (t_param) 
+                    t_param->copy_(val.value());
+                else
+                    std::cerr << "Warning: Target parameter '" << name << "' not found." << std::endl;
             }
         }
         for (auto& val : buffers) {
             auto name = val.key();
             if (target_buffers.contains(name)) {
                 auto* t_buffer = target_buffers.find(name);
-                t_buffer->copy_(val.value());
+                if (t_buffer)
+                    t_buffer->copy_(val.value());
+                else
+                    std::cerr << "Warning: Target buffer '" << name << "' not found." << std::endl;
             }
         }
     }
@@ -116,9 +122,10 @@ namespace rlop::torch_utils {
     inline void PolyakUpdate(const std::vector<torch::Tensor>& params, std::vector<torch::Tensor>& target_params, double tau) {
         tau = std::clamp(tau, 0.0, 1.0);
         torch::NoGradGuard no_grad;
+        if (params.size() != target_params.size())
+            throw std::runtime_error("PolyakUpdate: Size mismatch between source parameters and target parameters. Source parameters size: " 
+                                    + std::to_string(params.size()) + ", Target parameters size: " + std::to_string(target_params.size()));
         for (size_t i = 0; i < params.size(); ++i) {
-            if (i >= target_params.size())
-                throw std::runtime_error("PolyakUpdate: mismatch in the number of parameters and target parameters");
             target_params[i].mul_(1.0 - tau).add_(params[i], tau);
         }
     }
@@ -204,21 +211,7 @@ namespace rlop::torch_utils {
         auto ev = 1 - torch::var(y_true - y_pred, /* unbiased */ false) / var_y;
         return ev;
     }
-
-    inline torch::Tensor SumIndependentDims(const torch::Tensor& tensor) {
-        if (tensor.sizes().size() > 1)
-            return tensor.sum(1);
-        else
-            return tensor.sum();
-    }
-
-    inline torch::Tensor LogitsToProbs(const torch::Tensor& logits, bool is_binary = false) {
-        if (is_binary)
-            return torch::sigmoid(logits);
-        else
-            return torch::softmax(logits, -1);
-    }
-
+    
     inline void SetRandomSeed(uint64_t seed, bool using_cuda = false) {
         std::srand(seed);
         torch::manual_seed(seed);

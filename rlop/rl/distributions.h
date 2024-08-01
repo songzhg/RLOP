@@ -13,6 +13,28 @@ namespace rlop {
         virtual torch::Tensor Entropy() const = 0;
     };
 
+    // Continuous actions are usually considered to be independent, so we can sum components of the `log_prob` or the entropy.
+    //
+    // Parameters:
+    //   tensor: A tensor with shape (n_batch, n_actions) or (n_batch,)
+    // 
+    // Returns:
+    //   A tensor with shape (n_batch,) for an input tensor with shape (n_batch, n_actions),
+    //   or a scalar for an input tensor with shape (n_batch,)
+    inline torch::Tensor SumIndependentDims(const torch::Tensor& tensor) {
+        if (tensor.sizes().size() > 1)
+            return tensor.sum(1);
+        else
+            return tensor.sum();
+    }
+
+    inline torch::Tensor LogitsToProbs(const torch::Tensor& logits, bool is_binary = false) {
+        if (is_binary)
+            return torch::sigmoid(logits);
+        else
+            return torch::softmax(logits, -1);
+    }
+
     class DiagGaussian : public RLDistribution {
     public:
         DiagGaussian(const torch::Tensor& mean, const torch::Tensor& std) : mean_(mean), std_(std) {}
@@ -28,12 +50,12 @@ namespace rlop {
 
         virtual torch::Tensor LogProb(const torch::Tensor& x) const override {
             torch::Tensor log_prob = -(x - mean_).square() / (2.0 * std_.square()) - std_.log() - std::log(std::sqrt(2.0 * M_PI));
-            return torch_utils::SumIndependentDims(log_prob);
+            return SumIndependentDims(log_prob);
         }
 
         virtual torch::Tensor Entropy() const override {
             auto entropy = 0.5 + 0.5 * std::log(2 * M_PI) + std_.log();
-            return torch_utils::SumIndependentDims(entropy);
+            return SumIndependentDims(entropy);
         }
 
     protected:
@@ -58,7 +80,7 @@ namespace rlop {
         }
 
         virtual torch::Tensor LogProb(const torch::Tensor& x, const torch::Tensor& gaussian_x) const {
-            return DiagGaussian::LogProb(gaussian_x) - torch_utils::SumIndependentDims(torch::log(1.0 - x.square() + eps_));
+            return DiagGaussian::LogProb(gaussian_x) - SumIndependentDims(torch::log(1.0 - x.square() + eps_));
         }
 
         virtual torch::Tensor Entropy() const override {
@@ -71,7 +93,7 @@ namespace rlop {
 
     class Categorical : public RLDistribution {
     public:
-        Categorical(const torch::Tensor& logits) : logits_(logits - logits.logsumexp(-1, true)), probs_(torch_utils::LogitsToProbs(logits_)) {}
+        Categorical(const torch::Tensor& logits) : logits_(logits - logits.logsumexp(-1, true)), probs_(LogitsToProbs(logits_)) {}
 
         virtual torch::Tensor Sample() const override {
             return torch::multinomial(probs_, 1).flatten();

@@ -39,12 +39,12 @@ namespace rlop {
         //                             returns std::nullopt.
         virtual std::optional<TNeighbor> SelectRandom() = 0;
         
-        // Pure virtual function to select a local optimal neighbor.
+        // Pure virtual function to select a best neighbor.
         //
         // Returns:
         //   std::optional<TNeighbor>: The neighbor being selected. If there is no legal neighbor,
         //                             returns std::nullopt.
-        virtual std::optional<TNeighbor> SelectLocal() = 0;
+        virtual std::optional<TNeighbor> SelectBest() = 0;
 
         // Pure virtual function to evaluate the cost of a neighbor.
         virtual TCost EvaluateNeighbor(const TNeighbor& neighbor) = 0;
@@ -76,11 +76,11 @@ namespace rlop {
             TCost cost = this->EvaluateSolution();
             auto neighbor = SelectRandom();
             if (!neighbor)
-                return SelectLocal();
+                return SelectBest();
             TCost neighbor_cost = EvaluateNeighbor(*neighbor);
             if (Accept(neighbor_cost, cost)) 
                 return neighbor;
-            return SelectLocal();
+            return SelectBest();
         }
        
         // Determines whether to accept a new solution based on its cost relative to the current solution

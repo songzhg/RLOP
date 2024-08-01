@@ -124,7 +124,7 @@ namespace snake {
             torch::Tensor terminated = torch::stack(terminated_list);
             torch::Tensor truncated = torch::zeros_like(terminated);
             torch::Tensor terminal_observation = torch::stack(terminal_obseravtion_list);
-            score_stack_.PushBack(torch::stack(score_list));
+            score_stack_.Push(torch::stack(score_list));
             if (score_stack_.full())
                 log_items_["score"] = torch::stack(score_stack_.vec()).mean();
             problem_.Render();

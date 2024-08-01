@@ -83,7 +83,7 @@ namespace rlop {
             if (path_.empty())
                 return true;
             while (IsExpanded(*path_.back())) {
-                auto child_i = SelectTreePolicy();
+                auto child_i = SelectByTreePolicy();
                 if (!child_i)
                     return false;
                 path_.push_back(path_.back()->children[*child_i]); 
@@ -175,7 +175,7 @@ namespace rlop {
         // Returns:
         //   std::optional<Int>: The index of the child node with the highest UCB1 score. If the current node has no
         //                       legal children, returns std::nullopt.
-        virtual std::optional<Int> SelectTreePolicy() {
+        virtual std::optional<Int> SelectByTreePolicy() {
             Int best = kIntNull;
             double best_score = std::numeric_limits<double>::lowest();
             for (Int i=0; i<path_.back()->children.size(); ++i) {

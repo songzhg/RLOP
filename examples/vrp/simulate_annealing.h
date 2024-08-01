@@ -44,7 +44,7 @@ namespace vrp {
             return rand_.Uniform(Int(0), problem_.operator_space()->NumNeighbors() - 1);    
         }
 
-        std::optional<Int> SelectLocal() override {
+        std::optional<Int> SelectBest() override {
             Int best = kIntNull;
             double best_score = std::numeric_limits<double>::max();
             for (Int i=0; i<problem_.operator_space()->NumNeighbors(); ++i) {

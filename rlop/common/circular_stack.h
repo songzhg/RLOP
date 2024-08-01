@@ -11,12 +11,12 @@ namespace rlop {
 
         void Reset() {
             head_ = 0;
-            pos_ = 0;
+            tail_ = 0;
             full_ = false;
         }
 
         bool Empty() const {
-            return !full_ && (head_ == pos_);
+            return !full_ && (head_ == tail_);
         }
 
         size_t Capacity() const {
@@ -27,33 +27,33 @@ namespace rlop {
             if (full_) {
                 return vec_.size();
             }
-            if (pos_ >= head_) {
-                return pos_ - head_;
+            if (tail_ >= head_) {
+                return tail_ - head_;
             }
-            return vec_.size() + pos_ - head_;
+            return vec_.size() + tail_ - head_;
         }
 
-        void PushBack(const T& element) {
-            vec_[pos_] = element;
+        void Push(const T& element) {
+            vec_[tail_] = element;
             if (full_)
                 head_ = (head_ + 1) % vec_.size();
-            pos_ = (pos_ + 1) % vec_.size();
-            full_ = head_ == pos_;
+            tail_ = (tail_ + 1) % vec_.size();
+            full_ = head_ == tail_;
         }
 
-        void PushBack(T&& element) {
-            vec_[pos_] = std::move(element);
+        void Push(T&& element) {
+            vec_[tail_] = std::move(element);
             if (full_)
                 head_ = (head_ + 1) % vec_.size();
-            pos_ = (pos_ + 1) % vec_.size();
-            full_ = head_ == pos_;
+            tail_ = (tail_ + 1) % vec_.size();
+            full_ = head_ == tail_;
         }
 
-        void PopBack() {
+        void Pop() {
             if (Empty())
                 throw std::runtime_error("CircularBuffer: pop back on empty buffer.");
             full_ = false;
-            pos_ = (pos_ == 0? vec_.size() : pos_) - 1;
+            tail_ = (tail_ == 0? vec_.size() : tail_) - 1;
         }
 
         T& Front()  {
@@ -71,13 +71,13 @@ namespace rlop {
         T& Back() {
             if (Empty())
                 throw std::runtime_error("CircularBuffer: get elements on empty buffer.");
-            return vec_[(pos_ == 0? vec_.size() : pos_) - 1];
+            return vec_[(tail_ == 0? vec_.size() : tail_) - 1];
         } 
 
         const T& Back() const {
             if (Empty())
                 throw std::runtime_error("CircularBuffer: pop back on empty buffer.");
-            return vec_[(pos_ == 0? vec_.size() : pos_) - 1];
+            return vec_[(tail_ == 0? vec_.size() : tail_) - 1];
         }
 
         const std::vector<T>& vec() const {
@@ -88,8 +88,8 @@ namespace rlop {
             return head_;
         }
 
-        size_t pos() const {
-            return pos_;
+        size_t tail() const {
+            return tail_;
         }
 
         bool full() const {
@@ -99,7 +99,7 @@ namespace rlop {
     private:
         std::vector<T> vec_;
         size_t head_ = 0;
-        size_t pos_ = 0;
+        size_t tail_ = 0;
         bool full_ = false;
     };
 }
