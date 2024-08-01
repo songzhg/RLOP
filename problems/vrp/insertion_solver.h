@@ -18,6 +18,7 @@ namespace vrp {
         }
 
         virtual std::optional<Int> Select() {
+            problem_->operator_space()->GenerateInsertions();
             Int best = kIntNull;
             double best_score = std::numeric_limits<double>::max();
             for (Int i=0; i<problem_->operator_space()->NumInsertions(); ++i) {

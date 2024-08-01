@@ -1,4 +1,5 @@
 #pragma once
+#include "rlop/common/random.h"
 #include "operators.h"
 
 namespace vrp {
@@ -31,15 +32,19 @@ namespace vrp {
             operators_.clear();
         }
 
-        virtual Int NumInsertions() const {
-            return routes_->num_visited_nodes() < routes_->num_nodes()? routes_->num_visited_nodes() + routes_->num_routes() : 0; 
+        virtual void ClearInsertions() {
+            for (auto ptr : insertions_) {
+                delete ptr;
+            }
+            insertions_.clear();
         }
 
-        virtual std::unique_ptr<const Insertion> GetInsertion(Int i) const {
-            if (i<routes_->num_visited_nodes())
-                return std::make_unique<const Insertion>(routes_->num_visited_nodes(), i);
-            Int route_i = i - routes_->num_visited_nodes();
-            return std::make_unique<const Insertion>(routes_->num_visited_nodes(), routes_->GetSentinel(route_i));
+        virtual Int NumInsertions() const {
+            return insertions_.size();
+        }
+
+        virtual const Insertion* GetInsertion(Int i) const {
+            return insertions_[i];
         }
 
         virtual Int NumNeighbors() const {
@@ -48,6 +53,27 @@ namespace vrp {
 
         virtual const Operator* GetNeighbor(Int i) const {
             return operators_[i];
+        }
+
+        virtual void GenerateInsertions() {
+            ClearInsertions();
+            std::vector<Int> visited;
+            std::vector<Int> unvisited;
+            visited.reserve(routes_->num_nodes());
+            unvisited.reserve(routes_->num_nodes());
+            for (Int i=0; i<routes_->num_nodes(); ++i) {
+                if (routes_->IsVisited(i))
+                    visited.push_back(i);
+                else
+                    unvisited.push_back(i);
+            }
+            if (unvisited.empty())
+                return;
+            Int i = unvisited[rand_.Uniform(Int(0), (Int)unvisited.size()-1)];
+            for (Int j : visited)
+                insertions_.push_back(new Insertion(i, j));
+            for (Int j=0; j<routes_->num_routes(); ++j)
+                insertions_.push_back(new Insertion(i, routes_->GetSentinel(j)));
         }
         
         virtual void GenerateNeighbors() {
@@ -83,8 +109,14 @@ namespace vrp {
             }
         }
 
+        void Seed(uint64_t seed) {
+            rand_.Seed(seed);
+        }
+
     protected: 
         const Routes* routes_ = nullptr;
         std::vector<Operator*> operators_;
+        std::vector<Insertion*> insertions_;
+        rlop::Random rand_;               
     };
 }
